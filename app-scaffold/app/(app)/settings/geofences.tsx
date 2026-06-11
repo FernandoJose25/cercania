@@ -26,11 +26,12 @@ import * as Location from 'expo-location';
 interface Geofence {
     id: string;
     name: string;
-    lat: number;
-    lng: number;
+    latitude: number;
+    longitude: number;
     radius_meters: number;
-    icon: string;
-    is_active: boolean;
+    emoji: string;
+    notify_on_enter: boolean;
+    notify_on_exit: boolean;
     created_at: string;
 }
 
@@ -49,25 +50,26 @@ function GeofenceCard({ zone, onToggle, onDelete }: { zone: Geofence; onToggle: 
     const radiusLabel = zone.radius_meters >= 1000
         ? `${zone.radius_meters / 1000} km`
         : `${zone.radius_meters} m`;
+    const isActive = zone.notify_on_enter;
 
     return (
-        <View style={[gcStyles.card, !zone.is_active && gcStyles.cardInactive]}>
+        <View style={[gcStyles.card, !isActive && gcStyles.cardInactive]}>
             <View style={gcStyles.iconBox}>
-                <Text style={gcStyles.icon}>{zone.icon}</Text>
+                <Text style={gcStyles.icon}>{zone.emoji}</Text>
             </View>
             <View style={gcStyles.info}>
                 <Text style={gcStyles.name}>{zone.name}</Text>
                 <Text style={gcStyles.sub}>Radio: {radiusLabel}</Text>
-                <View style={[gcStyles.badge, { backgroundColor: zone.is_active ? Colors.accentLight : Colors.surfaceAlt }]}>
-                    <View style={[gcStyles.badgeDot, { backgroundColor: zone.is_active ? Colors.accent : Colors.textMuted }]} />
-                    <Text style={[gcStyles.badgeText, { color: zone.is_active ? Colors.accentDark : Colors.textMuted }]}>
-                        {zone.is_active ? 'Activa' : 'Inactiva'}
+                <View style={[gcStyles.badge, { backgroundColor: isActive ? Colors.accentLight : Colors.surfaceAlt }]}>
+                    <View style={[gcStyles.badgeDot, { backgroundColor: isActive ? Colors.accent : Colors.textMuted }]} />
+                    <Text style={[gcStyles.badgeText, { color: isActive ? Colors.accentDark : Colors.textMuted }]}>
+                        {isActive ? 'Activa' : 'Inactiva'}
                     </Text>
                 </View>
             </View>
             <View style={gcStyles.actions}>
                 <Pressable style={gcStyles.actionBtn} onPress={onToggle} hitSlop={8}>
-                    <Text style={gcStyles.actionIcon}>{zone.is_active ? '⏸️' : '▶️'}</Text>
+                    <Text style={gcStyles.actionIcon}>{isActive ? '⏸️' : '▶️'}</Text>
                 </Pressable>
                 <Pressable style={[gcStyles.actionBtn, gcStyles.deleteBtn]} onPress={onDelete} hitSlop={8}>
                     <Text style={gcStyles.actionIcon}>🗑️</Text>
@@ -115,7 +117,7 @@ export default function GeofencesScreen() {
             const { data, error } = await sb
                 .from('geofences')
                 .select('*')
-                .eq('user_id', user.id)
+                .eq('created_by', user.id)
                 .order('created_at', { ascending: false });
             if (error) throw error;
             setZones(data ?? []);
@@ -138,13 +140,14 @@ export default function GeofencesScreen() {
 
             const sb = await getSupabase();
             const { error } = await sb.from('geofences').insert({
-                user_id: user!.id,
+                created_by: user!.id,
                 name: name.trim(),
-                icon,
-                lat: loc.coords.latitude,
-                lng: loc.coords.longitude,
+                emoji: icon,
+                latitude: loc.coords.latitude,
+                longitude: loc.coords.longitude,
                 radius_meters: radius,
-                is_active: true,
+                notify_on_enter: true,
+                notify_on_exit: true,
             });
             if (error) throw error;
 
@@ -159,11 +162,12 @@ export default function GeofencesScreen() {
     const handleToggle = async (zone: Geofence) => {
         try {
             const sb = await getSupabase();
+            const newVal = !zone.notify_on_enter;
             const { error } = await sb.from('geofences')
-                .update({ is_active: !zone.is_active })
+                .update({ notify_on_enter: newVal, notify_on_exit: newVal })
                 .eq('id', zone.id);
             if (error) throw error;
-            setZones(prev => prev.map(z => z.id === zone.id ? { ...z, is_active: !z.is_active } : z));
+            setZones(prev => prev.map(z => z.id === zone.id ? { ...z, notify_on_enter: newVal, notify_on_exit: newVal } : z));
         } catch (e: any) { Alert.alert('Error', e.message); }
     };
 
