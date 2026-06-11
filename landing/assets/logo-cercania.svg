@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Escudo -->
+  <path d="M50 8 L82 22 L82 52 C82 68 66 82 50 90 C34 82 18 68 18 52 L18 22 Z"
+        fill="#F59E0B"/>
+  <!-- Sombra interior del escudo -->
+  <path d="M50 14 L76 26 L76 52 C76 65 62 77 50 84 C38 77 24 65 24 52 L24 26 Z"
+        fill="#FBBF24"/>
+  <!-- Corazón blanco -->
+  <path d="M50 62 C50 62 36 53 36 44 C36 39.5 39.5 36 44 36 C46.5 36 48.8 37.2 50 39 C51.2 37.2 53.5 36 56 36 C60.5 36 64 39.5 64 44 C64 53 50 62 50 62 Z"
+        fill="white" opacity="0.95"/>
+  <!-- Pin GPS blanco encima del corazón -->
+  <circle cx="50" cy="41" r="4" fill="#F59E0B"/>
+  <path d="M50 47 L46 41.5 Q44 38 47 36.5 Q50 35.5 53 36.5 Q56 38 54 41.5 Z"
+        fill="#F59E0B"/>
+</svg>
