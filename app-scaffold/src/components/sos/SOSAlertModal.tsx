@@ -5,7 +5,7 @@ import {
   Alert, Animated, Easing, Linking, Modal,
   Pressable, StyleSheet, Text, View
 } from 'react-native';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { Video, ResizeMode } from 'expo-av';
 import { resolveSOS } from '../../services/sos.service';
 
 export interface SOSAlertData {
@@ -29,9 +29,6 @@ export function SOSAlertModal({ visible, data, onDismiss }: Props) {
   const [showVideo, setShowVideo] = useState(false);
   const pulse = useRef(new Animated.Value(1)).current;
 
-  const player = useVideoPlayer(data.videoUrl ?? '', p => {
-    p.loop = false;
-  });
 
   useEffect(() => {
     if (!visible) return;
@@ -100,11 +97,12 @@ export function SOSAlertModal({ visible, data, onDismiss }: Props) {
                 </Pressable>
               ) : (
                 <View style={styles.videoWrap}>
-                  <VideoView
-                    player={player}
+                  <Video
+                    source={{ uri: data.videoUrl! }}
                     style={styles.video}
-                    allowsFullscreen
-                    allowsPictureInPicture={false}
+                    useNativeControls
+                    resizeMode={ResizeMode.CONTAIN}
+                    shouldPlay
                   />
                 </View>
               )}
