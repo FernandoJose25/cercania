@@ -1,0 +1,3 @@
+cd "C:\Users\Fernando Jose\Documents\proyectos jose\cercania\app-scaffold"
+set EXPO_TOKEN=8lUiZm2KOy194yZGyC809NY8gbN6P47pD6wEloC0
+eas build --platform android --profile preview

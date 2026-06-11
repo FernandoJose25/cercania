@@ -58,26 +58,33 @@ export default function HomeScreen() {
 
   return (
     <>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={groupsLoading} onRefresh={loadGroups} />}
-        showsVerticalScrollIndicator={false}>
-
-        {/* Header */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={groupsLoading} onRefresh={loadGroups} tintColor={Colors.primary} />}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── HEADER ── */}
         <View style={styles.header}>
           <View style={styles.headerBg} />
+          {/* Decoración */}
+          <View style={[styles.headerDeco, { width: 200, height: 200, top: -60, right: -40 }]} />
+          <View style={[styles.headerDeco, { width: 120, height: 120, top: 20, right: 60, opacity: 0.06 }]} />
+
           <View style={styles.headerRow}>
             <View>
               <Text style={styles.greeting}>¡Hola, {firstName}! 👋</Text>
-              <Text style={styles.greetingSub}>
-                {isTracking ? '📡 Rastreo activo' : '📵 Rastreo pausado'}
-              </Text>
+              <View style={styles.statusPill}>
+                <View style={[styles.statusDot, { backgroundColor: isTracking ? Colors.accent : Colors.textMuted }]} />
+                <Text style={[styles.statusText, { color: isTracking ? Colors.accentDark : Colors.textMuted }]}>
+                  {isTracking ? 'Compartiendo ubicación' : 'Rastreo pausado'}
+                </Text>
+              </View>
             </View>
             <View style={styles.headerRight}>
-              {/* Batería */}
               <View style={styles.batteryPill}>
                 <Text style={styles.batteryText}>{battery.isCharging ? '⚡' : '🔋'} {battery.level ?? '--'}%</Text>
               </View>
-              {/* Avatar */}
               <Pressable style={styles.avatar} onPress={() => router.push('/(app)/profile')}>
                 <Text style={styles.avatarText}>{initials || '?'}</Text>
                 <View style={styles.avatarDot} />
@@ -85,15 +92,14 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Stats rápidos */}
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statNum}>{groups.length}</Text>
               <Text style={styles.statLabel}>Grupos</Text>
             </View>
             <View style={[styles.statCard, { backgroundColor: isTracking ? Colors.accentLight : Colors.surfaceAlt }]}>
-              <Text style={styles.statNum}>{isTracking ? '🟢' : '🔴'}</Text>
-              <Text style={styles.statLabel}>Estado</Text>
+              <Text style={styles.statNum}>{isTracking ? '🟢' : '⚫'}</Text>
+              <Text style={styles.statLabel}>GPS</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statNum}>{battery.level ?? '--'}%</Text>
@@ -102,7 +108,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Tracker card */}
+        {/* ── TRACKER ── */}
         <View style={[styles.trackerCard, isTracking && styles.trackerCardActive]}>
           <View style={styles.trackerLeft}>
             <View style={[styles.trackerIconBox, isTracking && styles.trackerIconBoxActive]}>
@@ -118,7 +124,8 @@ export default function HomeScreen() {
           {initializing
             ? <ActivityIndicator color={Colors.primary} />
             : <Switch value={isTracking} onValueChange={handleToggle}
-              trackColor={{ false: Colors.border, true: Colors.primary }} thumbColor="#fff" />
+                trackColor={{ false: Colors.border, true: Colors.primary }}
+                thumbColor="#fff" ios_backgroundColor={Colors.border} />
           }
         </View>
 
@@ -127,7 +134,7 @@ export default function HomeScreen() {
             <Text style={styles.permIcon}>⚠️</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.permTitle}>Permisos requeridos</Text>
-              <Text style={styles.permText}>Activa la ubicación para compartirla con tu familia</Text>
+              <Text style={styles.permText}>Activa la ubicación para compartirla</Text>
             </View>
             <Pressable style={styles.permBtn} onPress={() => router.push('/(app)/permissions')}>
               <Text style={styles.permBtnText}>Activar</Text>
@@ -135,11 +142,12 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* SOS */}
+        {/* ── SOS ── */}
         <View style={styles.sosCard}>
           <View style={styles.sosHeader}>
             <View>
-              <Text style={styles.sosTitle}>Botón de emergencia</Text>
+              <Text style={styles.sosLabel}>EMERGENCIA</Text>
+              <Text style={styles.sosTitle}>Botón SOS</Text>
               <Text style={styles.sosSub}>Mantén 3 segundos para activar</Text>
             </View>
             <View style={styles.sosBadge}>
@@ -157,10 +165,11 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Acciones grupos */}
+        {/* ── ACCIONES RÁPIDAS ── */}
+        <Text style={styles.sectionTitle}>Acciones rápidas</Text>
         <View style={styles.actionsRow}>
           <Pressable style={styles.actionCard} onPress={() => router.push('/(app)/group/create')}>
-            <View style={styles.actionIcon}>
+            <View style={[styles.actionIcon, { backgroundColor: Colors.primaryLight }]}>
               <Text style={styles.actionEmoji}>➕</Text>
             </View>
             <Text style={styles.actionTitle}>Crear grupo</Text>
@@ -173,9 +182,16 @@ export default function HomeScreen() {
             <Text style={styles.actionTitle}>Unirse</Text>
             <Text style={styles.actionSub}>Con código</Text>
           </Pressable>
+          <Pressable style={styles.actionCard} onPress={() => router.push('/(app)/settings/geofences')}>
+            <View style={[styles.actionIcon, { backgroundColor: '#EFF6FF' }]}>
+              <Text style={styles.actionEmoji}>📍</Text>
+            </View>
+            <Text style={styles.actionTitle}>Zonas</Text>
+            <Text style={styles.actionSub}>Lugares seguros</Text>
+          </Pressable>
         </View>
 
-        {/* Grupos */}
+        {/* ── GRUPOS ── */}
         <Text style={styles.sectionTitle}>Mis grupos</Text>
         {groupsLoading && groups.length === 0 ? (
           <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing.xl }} />
@@ -233,9 +249,12 @@ const styles = StyleSheet.create({
 
   header: { paddingHorizontal: Spacing.xl, paddingTop: 52, paddingBottom: Spacing.xxl, position: 'relative', overflow: 'hidden' },
   headerBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: Colors.bgAlt, borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
+  headerDeco: { position: 'absolute', borderRadius: 999, backgroundColor: Colors.primary, opacity: 0.1 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.lg },
-  greeting: { fontSize: 24, fontWeight: '900', color: Colors.text },
-  greetingSub: { ...Typography.caption, color: Colors.textSoft, marginTop: 2 },
+  greeting: { fontSize: 22, fontWeight: '900', color: Colors.text, marginBottom: 6 },
+  statusPill: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusText: { fontSize: 12, fontWeight: '700' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   batteryPill: { backgroundColor: Colors.surface, borderRadius: Radius.pill, paddingHorizontal: 10, paddingVertical: 5, ...Shadows.card },
   batteryText: { ...Typography.small, fontWeight: '700', color: Colors.text },
@@ -245,12 +264,12 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: Spacing.sm },
   statCard: { flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, alignItems: 'center', ...Shadows.card },
   statNum: { fontSize: 18, fontWeight: '800', color: Colors.text },
-  statLabel: { ...Typography.small, marginTop: 2 },
+  statLabel: { ...Typography.small, marginTop: 2, fontWeight: '600' },
 
   trackerCard: { marginHorizontal: Spacing.xl, marginTop: Spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.lg, borderWidth: 1.5, borderColor: Colors.border, ...Shadows.card },
   trackerCardActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
   trackerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
-  trackerIconBox: { width: 48, height: 48, borderRadius: 14, backgroundColor: Colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
+  trackerIconBox: { width: 50, height: 50, borderRadius: 15, backgroundColor: Colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' },
   trackerIconBoxActive: { backgroundColor: Colors.primary },
   trackerIcon: { fontSize: 24 },
   trackerTitle: { ...Typography.bodyBold, color: Colors.text },
@@ -265,28 +284,29 @@ const styles = StyleSheet.create({
 
   sosCard: { marginHorizontal: Spacing.xl, marginTop: Spacing.lg, backgroundColor: '#FFF1F2', borderRadius: Radius.xl, padding: Spacing.xl, borderWidth: 1.5, borderColor: '#FFD5D5' },
   sosHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.lg },
-  sosTitle: { ...Typography.h3, color: Colors.danger },
+  sosLabel: { fontSize: 10, fontWeight: '900', letterSpacing: 2, color: Colors.danger, marginBottom: 4 },
+  sosTitle: { ...Typography.h3, color: Colors.text },
   sosSub: { ...Typography.caption, color: '#F87171', marginTop: 2 },
   sosBadge: { backgroundColor: Colors.danger, borderRadius: Radius.pill, paddingHorizontal: 12, paddingVertical: 4 },
   sosBadgeText: { color: '#fff', fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
   sosCenter: { alignItems: 'center', paddingVertical: Spacing.md },
   sosDisabled: { ...Typography.caption, color: Colors.textMuted, textAlign: 'center', marginTop: Spacing.sm },
 
-  actionsRow: { flexDirection: 'row', gap: Spacing.md, marginHorizontal: Spacing.xl, marginTop: Spacing.lg },
-  actionCard: { flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.lg, alignItems: 'center', borderWidth: 1.5, borderColor: Colors.border, ...Shadows.card },
-  actionIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  actionEmoji: { fontSize: 26 },
-  actionTitle: { ...Typography.bodyBold, color: Colors.text },
-  actionSub: { ...Typography.small, marginTop: 2 },
-
   sectionTitle: { ...Typography.h3, color: Colors.text, marginHorizontal: Spacing.xl, marginTop: Spacing.xl, marginBottom: Spacing.md },
+
+  actionsRow: { flexDirection: 'row', gap: Spacing.md, marginHorizontal: Spacing.xl },
+  actionCard: { flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.md, alignItems: 'center', borderWidth: 1.5, borderColor: Colors.border, ...Shadows.card },
+  actionIcon: { width: 50, height: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  actionEmoji: { fontSize: 24 },
+  actionTitle: { ...Typography.bodyBold, color: Colors.text, textAlign: 'center' },
+  actionSub: { fontSize: 11, color: Colors.textMuted, marginTop: 2, textAlign: 'center' },
 
   emptyCard: { marginHorizontal: Spacing.xl, backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.xxl, alignItems: 'center', borderWidth: 1.5, borderColor: Colors.border, borderStyle: 'dashed' },
   emptyIcon: { fontSize: 52, marginBottom: Spacing.md },
   emptyTitle: { ...Typography.h3, color: Colors.text, marginBottom: Spacing.xs },
   emptyText: { ...Typography.body, color: Colors.textSoft, textAlign: 'center' },
 
-  groupCard: { marginHorizontal: Spacing.xl, marginBottom: Spacing.sm, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.lg, ...Shadows.card },
+  groupCard: { marginHorizontal: Spacing.xl, marginBottom: Spacing.sm, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.lg, ...Shadows.card, borderWidth: 1, borderColor: Colors.border },
   groupEmoji: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   groupEmojiText: { fontSize: 28 },
   groupInfo: { flex: 1 },

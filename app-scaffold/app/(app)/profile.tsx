@@ -11,6 +11,30 @@ import { useAuth } from '../../src/store/auth';
 import { getSupabase } from '../../src/lib/supabase';
 import { getInitials } from '../../src/utils/format';
 
+function MenuItem({ icon, label, sub, color, onPress }: { icon: string; label: string; sub?: string; color: string; onPress?: () => void }) {
+    return (
+        <Pressable style={miStyles.row} onPress={onPress}>
+            <View style={[miStyles.iconBox, { backgroundColor: color + '22' }]}>
+                <Text style={miStyles.icon}>{icon}</Text>
+            </View>
+            <View style={miStyles.info}>
+                <Text style={miStyles.label}>{label}</Text>
+                {sub && <Text style={miStyles.sub}>{sub}</Text>}
+            </View>
+            <Text style={miStyles.arrow}>›</Text>
+        </Pressable>
+    );
+}
+const miStyles = StyleSheet.create({
+    row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
+    iconBox: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    icon: { fontSize: 20 },
+    info: { flex: 1 },
+    label: { ...Typography.bodyBold, color: Colors.text },
+    sub: { ...Typography.caption, color: Colors.textMuted, marginTop: 1 },
+    arrow: { fontSize: 22, color: Colors.textMuted },
+});
+
 export default function ProfileScreen() {
     const { profile, user, refreshProfile, signOut } = useAuth();
     const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
@@ -18,16 +42,10 @@ export default function ProfileScreen() {
     const [backupEmail, setBackupEmail] = useState(profile?.backup_email ?? '');
     const [backupPhone, setBackupPhone] = useState(profile?.backup_phone ?? '');
     const [saving, setSaving] = useState(false);
-    const [newEmail, setNewEmail] = useState('');
-    const [emailSection, setEmailSection] = useState(false);
-    const [newPassword, setNewPassword] = useState('');
-    const [passwordSection, setPasswordSection] = useState(false);
-
-    // Estado eliminación
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
     const [deleteOtp, setDeleteOtp] = useState('');
     const [deleteLoading, setDeleteLoading] = useState(false);
-    const [otpSent, setOtpSent] = useState(false);
+    const [editVisible, setEditVisible] = useState(false);
 
     useEffect(() => {
         setDisplayName(profile?.display_name ?? '');
@@ -49,70 +67,23 @@ export default function ProfileScreen() {
             }).eq('id', user?.id);
             if (error) throw error;
             await refreshProfile();
+            setEditVisible(false);
             Alert.alert('Perfil actualizado ✅');
-        } catch (e: any) {
-            Alert.alert('Error', e.message);
-        } finally { setSaving(false); }
-    };
-
-    const handleChangeEmail = async () => {
-        if (!newEmail.trim()) return;
-        setSaving(true);
-        try {
-            const sb = await getSupabase();
-            const { error } = await sb.auth.updateUser({ email: newEmail.trim().toLowerCase() });
-            if (error) throw error;
-            Alert.alert('Revisa tu correo', 'Te enviamos un enlace de confirmación.');
-            setNewEmail(''); setEmailSection(false);
         } catch (e: any) { Alert.alert('Error', e.message); } finally { setSaving(false); }
     };
 
-    const handleChangePassword = async () => {
-        if (!newPassword.trim() || newPassword.length < 8) {
-            Alert.alert('La contraseña debe tener al menos 8 caracteres'); return;
-        }
-        setSaving(true);
-        try {
-            const sb = await getSupabase();
-            const { error } = await sb.auth.updateUser({ password: newPassword });
-            if (error) throw error;
-            Alert.alert('Contraseña actualizada ✅');
-            setNewPassword(''); setPasswordSection(false);
-        } catch (e: any) { Alert.alert('Error', e.message); } finally { setSaving(false); }
-    };
-
-    // ─── ELIMINACIÓN DE CUENTA (3 pasos) ────────────────────
-
-    // Paso 1: primera confirmación
     const handleDeleteAccount = () => {
-        Alert.alert(
-            '⚠️ Eliminar cuenta',
-            'Esta acción es PERMANENTE e irreversible.\n\nSe eliminarán:\n• Tu perfil y todos tus datos\n• Tus grupos familiares\n• Tu historial de ubicaciones\n• Todas tus alertas SOS\n• Tus contactos de confianza\n\n¿Estás seguro de continuar?',
-            [
-                { text: 'No, cancelar', style: 'cancel' },
-                { text: 'Continuar →', style: 'destructive', onPress: handleDeleteConfirm2 }
-            ]
-        );
+        Alert.alert('⚠️ Eliminar cuenta', 'Esta acción es PERMANENTE e irreversible.\n\nSe eliminarán todos tus datos, grupos e historial.\n\n¿Estás seguro?', [
+            { text: 'No, cancelar', style: 'cancel' },
+            { text: 'Continuar →', style: 'destructive', onPress: () =>
+                Alert.alert('🚨 Última advertencia', `¿Realmente deseas eliminar tu cuenta "${profile?.display_name ?? user?.email}"?`, [
+                    { text: 'No, mantener mi cuenta', style: 'cancel' },
+                    { text: 'Sí, eliminar definitivamente', style: 'destructive', onPress: () => setDeleteModalVisible(true) }
+                ])
+            }
+        ]);
     };
 
-    // Paso 2: segunda confirmación
-    const handleDeleteConfirm2 = () => {
-        Alert.alert(
-            '🚨 Última advertencia',
-            `¿Realmente deseas eliminar tu cuenta "${profile?.display_name ?? user?.email}"?\n\nTu familia perderá acceso a tu ubicación para siempre. Esta acción NO se puede deshacer.`,
-            [
-                { text: 'No, mantener mi cuenta', style: 'cancel' },
-                { text: 'Sí, eliminar definitivamente', style: 'destructive', onPress: sendDeletionCode }
-            ]
-        );
-    };
-
-    // Paso 3: enviar código de verificación al email
-    const sendDeletionCode = async () => {
-        setDeleteModalVisible(true);
-    };
-
-    // Paso 4: verificar código y eliminar
     const confirmDeletion = async () => {
         if (deleteOtp.trim().toLowerCase() !== user?.email?.toLowerCase()) {
             Alert.alert('Correo incorrecto', 'Escribe exactamente tu correo para confirmar.');
@@ -132,174 +103,143 @@ export default function ProfileScreen() {
     };
 
     const initials = getInitials(displayName);
+    const memberSince = profile?.created_at
+        ? new Date(profile.created_at).toLocaleDateString('es-PE', { year: 'numeric', month: 'long' })
+        : '';
 
     return (
         <>
-            <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-                <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
-                    <Text style={styles.backText}>← Volver</Text>
-                </Pressable>
-                <Text style={styles.title}>Mi perfil</Text>
+            <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+                {/* Header */}
+                <View style={styles.header}>
+                    <View style={styles.headerBg} />
+                    <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backBtn}>
+                        <Text style={styles.backIcon}>←</Text>
+                    </Pressable>
+                    <Text style={styles.headerTitle}>Mi perfil</Text>
+                </View>
 
                 {/* Avatar */}
                 <View style={styles.avatarSection}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{initials || '?'}</Text>
+                    <View style={styles.avatarRing}>
+                        <View style={styles.avatar}>
+                            <Text style={styles.avatarText}>{initials || '?'}</Text>
+                        </View>
+                        <View style={styles.verifiedBadge}>
+                            <Text style={styles.verifiedIcon}>✓</Text>
+                        </View>
                     </View>
+                    <Text style={styles.avatarName}>{displayName || 'Sin nombre'}</Text>
                     <Text style={styles.avatarEmail}>{user?.email}</Text>
-                    <Text style={styles.avatarSub}>
-                        Miembro desde {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('es-PE', { year: 'numeric', month: 'long' }) : ''}
-                    </Text>
-                </View>
-
-                {/* Info básica */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Información básica</Text>
-                    <Text style={styles.label}>Nombre visible</Text>
-                    <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="Tu nombre" placeholderTextColor={Colors.textMuted} maxLength={50} />
-                    <Text style={styles.label}>Teléfono</Text>
-                    <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+51 999 999 999" placeholderTextColor={Colors.textMuted} keyboardType="phone-pad" />
-                    <Button title="Guardar cambios" variant="primary" fullWidth loading={saving} onPress={handleSaveProfile} style={{ marginTop: Spacing.md }} />
-                </View>
-
-                {/* Datos de respaldo */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Recuperación de cuenta</Text>
-                    <Text style={styles.sectionDesc}>Usados para recuperar tu cuenta si pierdes acceso.</Text>
-                    <Text style={styles.label}>Correo de respaldo</Text>
-                    <TextInput style={styles.input} value={backupEmail} onChangeText={setBackupEmail} placeholder="correo_alternativo@email.com" placeholderTextColor={Colors.textMuted} keyboardType="email-address" autoCapitalize="none" />
-                    <Text style={styles.label}>Teléfono de respaldo</Text>
-                    <TextInput style={styles.input} value={backupPhone} onChangeText={setBackupPhone} placeholder="+51 999 999 999" placeholderTextColor={Colors.textMuted} keyboardType="phone-pad" />
-                    <Button title="Guardar datos de respaldo" variant="secondary" fullWidth loading={saving} onPress={handleSaveProfile} style={{ marginTop: Spacing.md }} />
-                </View>
-
-                {/* Privacidad */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Privacidad y seguridad</Text>
-                    <Pressable style={styles.menuItem} onPress={() => router.push('/(app)/settings/invisible-mode')}>
-                        <Text style={styles.menuEmoji}>👁️‍🗨️</Text>
-                        <View style={styles.menuInfo}>
-                            <Text style={styles.menuTitle}>Modo invisible</Text>
-                            <Text style={styles.menuSub}>Pausa tu ubicación temporalmente</Text>
+                    {memberSince && (
+                        <View style={styles.memberBadge}>
+                            <Text style={styles.memberText}>📅 Desde {memberSince}</Text>
                         </View>
-                        <Text style={styles.menuArrow}>›</Text>
-                    </Pressable>
-                    <Pressable style={styles.menuItem} onPress={() => router.push('/(app)/settings/trusted-contacts')}>
-                        <Text style={styles.menuEmoji}>🛡️</Text>
-                        <View style={styles.menuInfo}>
-                            <Text style={styles.menuTitle}>Contactos de confianza</Text>
-                            <Text style={styles.menuSub}>Para recuperación de cuenta</Text>
-                        </View>
-                        <Text style={styles.menuArrow}>›</Text>
-                    </Pressable>
-                    <Pressable style={styles.menuItem} onPress={() => router.push('/(app)/settings/biometric')}>
-                        <Text style={styles.menuEmoji}>🔐</Text>
-                        <View style={styles.menuInfo}>
-                            <Text style={styles.menuTitle}>Biometría</Text>
-                            <Text style={styles.menuSub}>Huella / Face ID al abrir la app</Text>
-                        </View>
-                        <Text style={styles.menuArrow}>›</Text>
-                    </Pressable>
-                </View>
-
-                {/* Cambiar email */}
-                <View style={styles.section}>
-                    <Pressable style={styles.sectionToggle} onPress={() => setEmailSection(!emailSection)}>
-                        <Text style={styles.sectionTitle}>Cambiar correo principal</Text>
-                        <Text style={styles.toggleIcon}>{emailSection ? '▲' : '▼'}</Text>
-                    </Pressable>
-                    {emailSection && (
-                        <>
-                            <Text style={styles.label}>Nuevo correo</Text>
-                            <TextInput style={styles.input} value={newEmail} onChangeText={setNewEmail} placeholder="nuevo@correo.com" placeholderTextColor={Colors.textMuted} keyboardType="email-address" autoCapitalize="none" />
-                            <Text style={styles.hint}>Recibirás un enlace de confirmación.</Text>
-                            <Button title="Actualizar correo" variant="secondary" fullWidth loading={saving} onPress={handleChangeEmail} style={{ marginTop: Spacing.md }} />
-                        </>
                     )}
+                    <Pressable style={styles.editBtn} onPress={() => setEditVisible(true)}>
+                        <Text style={styles.editBtnText}>✏️ Editar perfil</Text>
+                    </Pressable>
                 </View>
 
-                {/* Cambiar contraseña */}
+                {/* Privacidad y seguridad */}
                 <View style={styles.section}>
-                    <Pressable style={styles.sectionToggle} onPress={() => setPasswordSection(!passwordSection)}>
-                        <Text style={styles.sectionTitle}>Cambiar contraseña</Text>
-                        <Text style={styles.toggleIcon}>{passwordSection ? '▲' : '▼'}</Text>
-                    </Pressable>
-                    {passwordSection && (
-                        <>
-                            <Text style={styles.label}>Nueva contraseña</Text>
-                            <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="Mínimo 8 caracteres" placeholderTextColor={Colors.textMuted} secureTextEntry />
-                            <Button title="Actualizar contraseña" variant="secondary" fullWidth loading={saving} onPress={handleChangePassword} style={{ marginTop: Spacing.md }} />
-                        </>
-                    )}
+                    <Text style={styles.sectionLabel}>PRIVACIDAD Y SEGURIDAD</Text>
+                    <MenuItem icon="👁️‍🗨️" label="Modo invisible" sub="Pausa tu ubicación temporalmente" color={Colors.primary}
+                        onPress={() => router.push('/(app)/settings/invisible-mode')} />
+                    <MenuItem icon="🛡️" label="Contactos de confianza" sub="Para recuperación de cuenta" color="#8B5CF6"
+                        onPress={() => router.push('/(app)/settings/trusted-contacts')} />
+                    <MenuItem icon="🔐" label="Biometría" sub="Huella / Face ID al abrir la app" color={Colors.accent}
+                        onPress={() => router.push('/(app)/settings/biometric')} />
+                    <MenuItem icon="📍" label="Zonas seguras" sub="Gestiona tus geofences" color="#06B6D4"
+                        onPress={() => router.push('/(app)/settings/geofences')} />
+                </View>
+
+                {/* Recuperación */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>RECUPERACIÓN DE CUENTA</Text>
+                    <MenuItem icon="📧" label="Correo de respaldo" sub={backupEmail || 'Sin configurar'} color={Colors.primary}
+                        onPress={() => setEditVisible(true)} />
+                    <MenuItem icon="📱" label="Teléfono de respaldo" sub={backupPhone || 'Sin configurar'} color="#06B6D4"
+                        onPress={() => setEditVisible(true)} />
                 </View>
 
                 {/* Zona peligrosa */}
-                <View style={styles.danger}>
+                <View style={styles.dangerZone}>
                     <Text style={styles.dangerTitle}>⚠️ Zona peligrosa</Text>
-                    <Text style={styles.dangerDesc}>
-                        Estas acciones son irreversibles. Procede con cuidado.
-                    </Text>
-                    <Button title="Cerrar sesión" variant="ghost" fullWidth onPress={signOut} />
-                    <Button
-                        title="Eliminar cuenta permanentemente"
-                        variant="danger"
-                        fullWidth
-                        loading={deleteLoading}
-                        onPress={handleDeleteAccount}
-                        style={{ marginTop: Spacing.sm }}
-                    />
+                    <Pressable style={styles.signOutBtn} onPress={signOut}>
+                        <Text style={styles.signOutIcon}>🚪</Text>
+                        <Text style={styles.signOutText}>Cerrar sesión</Text>
+                        <Text style={styles.signOutArrow}>›</Text>
+                    </Pressable>
+                    <Pressable style={styles.deleteBtn} onPress={handleDeleteAccount}>
+                        <Text style={styles.deleteText}>Eliminar cuenta permanentemente</Text>
+                    </Pressable>
                 </View>
+
             </ScrollView>
 
-            {/* Modal OTP eliminación */}
+            {/* Modal editar perfil */}
+            <Modal visible={editVisible} transparent animationType="slide">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHandle} />
+                        <Text style={styles.modalTitle}>Editar perfil</Text>
+
+                        <Text style={styles.inputLabel}>Nombre visible</Text>
+                        <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName}
+                            placeholder="Tu nombre" placeholderTextColor={Colors.textMuted} maxLength={50} />
+
+                        <Text style={styles.inputLabel}>Teléfono</Text>
+                        <TextInput style={styles.input} value={phone} onChangeText={setPhone}
+                            placeholder="+51 999 999 999" placeholderTextColor={Colors.textMuted} keyboardType="phone-pad" />
+
+                        <Text style={styles.inputLabel}>Correo de respaldo</Text>
+                        <TextInput style={styles.input} value={backupEmail} onChangeText={setBackupEmail}
+                            placeholder="correo_alternativo@email.com" placeholderTextColor={Colors.textMuted}
+                            keyboardType="email-address" autoCapitalize="none" />
+
+                        <Text style={styles.inputLabel}>Teléfono de respaldo</Text>
+                        <TextInput style={styles.input} value={backupPhone} onChangeText={setBackupPhone}
+                            placeholder="+51 999 999 999" placeholderTextColor={Colors.textMuted} keyboardType="phone-pad" />
+
+                        <Button title="Guardar cambios" variant="primary" fullWidth loading={saving}
+                            onPress={handleSaveProfile} style={{ marginTop: Spacing.lg }} />
+                        <Button title="Cancelar" variant="ghost" fullWidth
+                            onPress={() => setEditVisible(false)} style={{ marginTop: Spacing.sm }} />
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Modal eliminar cuenta */}
             <Modal visible={deleteModalVisible} transparent animationType="slide">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHandle} />
                         <View style={styles.dangerIconBox}>
-                            <Text style={styles.dangerIcon}>🗑️</Text>
+                            <Text style={{ fontSize: 36 }}>🗑️</Text>
                         </View>
-                        <Text style={styles.modalTitle}>Confirma la eliminación</Text>
-                        <Text style={styles.modalText}>
-                            Enviamos un enlace de verificación a:
-                        </Text>
+                        <Text style={[styles.modalTitle, { color: Colors.danger }]}>Confirma la eliminación</Text>
+                        <Text style={styles.modalSub}>Escribe tu correo exactamente para confirmar:</Text>
                         <Text style={styles.modalEmail}>{user?.email}</Text>
                         <View style={styles.warningBox}>
-                            <Text style={styles.warningText}>
-                                ⚠️ Al ingresar el código tu cuenta y TODOS tus datos serán eliminados de forma permanente.
-                            </Text>
+                            <Text style={styles.warningText}>⚠️ Al confirmar, tu cuenta y TODOS tus datos serán eliminados permanentemente.</Text>
                         </View>
-                        <Text style={styles.otpLabel}>Código de verificación</Text>
                         <TextInput
-                            style={styles.otpInput}
+                            style={[styles.input, { borderColor: Colors.danger, marginTop: Spacing.md }]}
                             value={deleteOtp}
-                            onChangeText={v => setDeleteOtp(v.replace(/\D/g, '').slice(0, 8))}
-                            placeholder="••••••••"
+                            onChangeText={setDeleteOtp}
+                            placeholder="Escribe tu correo aquí"
                             placeholderTextColor={Colors.textMuted}
-                            keyboardType="number-pad"
-                            maxLength={8}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
                             autoFocus
                         />
-                        <Button
-                            title="Eliminar mi cuenta definitivamente"
-                            variant="danger"
-                            fullWidth
-                            loading={deleteLoading}
-                            disabled={deleteOtp.length < 6}
-                            onPress={confirmDeletion}
-                            style={{ marginTop: Spacing.lg }}
-                        />
-                        <Button
-                            title="Cancelar — mantener mi cuenta"
-                            variant="ghost"
-                            fullWidth
-                            onPress={() => {
-                                setDeleteModalVisible(false);
-                                setDeleteOtp('');
-                                setOtpSent(false);
-                            }}
-                            style={{ marginTop: Spacing.sm }}
-                        />
+                        <Button title="Eliminar mi cuenta definitivamente" variant="danger" fullWidth
+                            loading={deleteLoading} onPress={confirmDeletion} style={{ marginTop: Spacing.lg }} />
+                        <Button title="Cancelar — mantener mi cuenta" variant="ghost" fullWidth
+                            onPress={() => { setDeleteModalVisible(false); setDeleteOtp(''); }}
+                            style={{ marginTop: Spacing.sm }} />
                     </View>
                 </View>
             </Modal>
@@ -309,42 +249,48 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
     scroll: { flex: 1, backgroundColor: Colors.bg },
-    content: { padding: Spacing.xl, paddingBottom: Spacing.xxxl },
-    back: { marginBottom: Spacing.md },
-    backText: { ...Typography.body, color: Colors.textSoft },
-    title: { ...Typography.h1, color: Colors.text },
-    avatarSection: { alignItems: 'center', marginBottom: Spacing.xl, marginTop: Spacing.md },
-    avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md, ...Shadows.card },
-    avatarText: { color: '#fff', fontSize: 32, fontWeight: '800' },
-    avatarEmail: { ...Typography.bodyBold, color: Colors.text },
-    avatarSub: { ...Typography.caption, color: Colors.textSoft, marginTop: 4 },
-    section: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.lg, marginBottom: Spacing.md, ...Shadows.card },
-    sectionToggle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    sectionTitle: { ...Typography.h3, color: Colors.text, marginBottom: Spacing.xs },
-    sectionDesc: { ...Typography.caption, color: Colors.textSoft, marginBottom: Spacing.md },
-    toggleIcon: { fontSize: 14, color: Colors.textSoft },
-    label: { ...Typography.bodyBold, color: Colors.text, marginBottom: Spacing.xs, marginTop: Spacing.sm },
-    input: { backgroundColor: Colors.surfaceAlt, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.lg, padding: Spacing.md, ...Typography.body, color: Colors.text },
-    hint: { ...Typography.caption, color: Colors.textMuted, marginTop: Spacing.xs },
-    menuItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border },
-    menuEmoji: { fontSize: 24 },
-    menuInfo: { flex: 1 },
-    menuTitle: { ...Typography.bodyBold, color: Colors.text },
-    menuSub: { ...Typography.caption, color: Colors.textSoft },
-    menuArrow: { fontSize: 22, color: Colors.textMuted },
-    danger: { backgroundColor: '#FEF2F2', borderRadius: Radius.lg, padding: Spacing.lg, marginTop: Spacing.lg, borderWidth: 1, borderColor: '#FECACA' },
-    dangerTitle: { ...Typography.h3, color: Colors.danger, marginBottom: Spacing.xs },
-    dangerDesc: { ...Typography.caption, color: '#B91C1C', marginBottom: Spacing.md },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: Colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: Spacing.xl, paddingBottom: Spacing.xxxl, gap: Spacing.sm },
-    modalHandle: { width: 40, height: 4, backgroundColor: Colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.md },
-    dangerIconBox: { width: 72, height: 72, borderRadius: 36, backgroundColor: Colors.dangerLight, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: Spacing.sm },
-    dangerIcon: { fontSize: 36 },
-    modalTitle: { ...Typography.h2, color: Colors.danger, textAlign: 'center' },
-    modalText: { ...Typography.body, color: Colors.textSoft, textAlign: 'center' },
-    modalEmail: { ...Typography.bodyBold, color: Colors.text, textAlign: 'center' },
-    warningBox: { backgroundColor: Colors.dangerLight, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 1, borderColor: '#FECACA' },
+    content: { paddingBottom: 48 },
+
+    header: { paddingHorizontal: Spacing.xl, paddingTop: 52, paddingBottom: Spacing.xxl, position: 'relative', overflow: 'hidden' },
+    headerBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: Colors.bgAlt, borderBottomLeftRadius: 36, borderBottomRightRadius: 36 },
+    backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md, ...Shadows.card },
+    backIcon: { fontSize: 18, color: Colors.text, fontWeight: '700' },
+    headerTitle: { ...Typography.h1, color: Colors.text },
+
+    avatarSection: { alignItems: 'center', paddingVertical: Spacing.xl },
+    avatarRing: { position: 'relative', marginBottom: Spacing.md },
+    avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', ...Shadows.glow },
+    avatarText: { fontSize: 36, fontWeight: '900', color: '#fff' },
+    verifiedBadge: { position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: Colors.bg },
+    verifiedIcon: { fontSize: 12, color: '#fff', fontWeight: '900' },
+    avatarName: { fontSize: 22, fontWeight: '900', color: Colors.text, marginBottom: 4 },
+    avatarEmail: { ...Typography.body, color: Colors.textSoft, marginBottom: Spacing.sm },
+    memberBadge: { backgroundColor: Colors.primaryLight, borderRadius: Radius.pill, paddingHorizontal: 14, paddingVertical: 5, marginBottom: Spacing.md },
+    memberText: { fontSize: 12, fontWeight: '600', color: Colors.primaryDark },
+    editBtn: { backgroundColor: Colors.surface, borderRadius: Radius.pill, paddingHorizontal: 20, paddingVertical: 9, borderWidth: 1.5, borderColor: Colors.primary, ...Shadows.card },
+    editBtnText: { fontSize: 14, fontWeight: '700', color: Colors.primary },
+
+    section: { backgroundColor: Colors.surface, marginHorizontal: Spacing.xl, borderRadius: Radius.xl, padding: Spacing.lg, marginBottom: Spacing.md, ...Shadows.card },
+    sectionLabel: { ...Typography.label, color: Colors.textMuted, marginBottom: Spacing.md },
+
+    dangerZone: { marginHorizontal: Spacing.xl, backgroundColor: Colors.dangerLight, borderRadius: Radius.xl, padding: Spacing.lg, borderWidth: 1.5, borderColor: '#FECACA', marginTop: Spacing.sm },
+    dangerTitle: { ...Typography.label, color: Colors.danger, marginBottom: Spacing.md },
+    signOutBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.sm },
+    signOutIcon: { fontSize: 20 },
+    signOutText: { ...Typography.bodyBold, color: Colors.text, flex: 1 },
+    signOutArrow: { fontSize: 22, color: Colors.textMuted },
+    deleteBtn: { alignItems: 'center', paddingVertical: Spacing.md },
+    deleteText: { fontSize: 13, fontWeight: '700', color: Colors.danger, textDecorationLine: 'underline' },
+
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: Colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: Spacing.xl, paddingBottom: 36 },
+    modalHandle: { width: 40, height: 4, backgroundColor: Colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.lg },
+    dangerIconBox: { width: 72, height: 72, borderRadius: 36, backgroundColor: Colors.dangerLight, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: Spacing.md },
+    modalTitle: { ...Typography.h2, color: Colors.text, textAlign: 'center', marginBottom: Spacing.sm },
+    modalSub: { ...Typography.body, color: Colors.textSoft, textAlign: 'center' },
+    modalEmail: { ...Typography.bodyBold, color: Colors.text, textAlign: 'center', marginTop: 4 },
+    warningBox: { backgroundColor: Colors.dangerLight, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 1, borderColor: '#FECACA', marginTop: Spacing.md },
     warningText: { ...Typography.caption, color: '#B91C1C', textAlign: 'center', lineHeight: 18 },
-    otpLabel: { ...Typography.bodyBold, color: Colors.text, marginTop: Spacing.sm },
-    otpInput: { backgroundColor: Colors.surfaceAlt, borderWidth: 2, borderColor: Colors.danger, borderRadius: Radius.lg, padding: Spacing.lg, fontSize: 28, fontWeight: '800', color: Colors.text, letterSpacing: 10, textAlign: 'center' },
+    inputLabel: { ...Typography.bodyBold, color: Colors.text, marginBottom: Spacing.xs, marginTop: Spacing.md },
+    input: { backgroundColor: Colors.surfaceAlt, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.lg, padding: Spacing.md, ...Typography.body, color: Colors.text },
 });

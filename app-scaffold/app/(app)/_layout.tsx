@@ -37,6 +37,7 @@ export default function AppLayout() {
       <Stack.Screen name="profile" />
       <Stack.Screen name="settings/trusted-contacts" />
       <Stack.Screen name="settings/invisible-mode" />
+      <Stack.Screen name="settings/geofences" />
       <Stack.Screen name="sos-active" options={{ gestureEnabled: false, presentation: 'fullScreenModal' }} />
     </Stack>
     </>
