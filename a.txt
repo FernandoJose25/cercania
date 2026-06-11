@@ -1,0 +1,22 @@
+id client
+
+1009559643118-0b49es9648h1vqgciefkpo2qm45k4ur2.apps.googleusercontent.com
+
+secret 
+
+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
+
+
+id client Android
+
+1009559643118-li4q57mlss7td6m5pdp3i7ciljje735u.apps.googleusercontent.com
+
+CALLBACK URL FOR OAUTH
+
+https://xvwsxkpgvzneiaijkeek.supabase.co/auth/v1/callback
+
+5E7AD576
+
+
+cd "c:\Users\Fernando Jose\Documents\proyectos jose\cercania\app-scaffold"
+npx expo start --dev-client

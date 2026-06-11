@@ -1,0 +1,93 @@
+GUÍA DE RELEASES — Cercanía
+============================================================
+
+¿QUÉ REQUIERE NUEVA APK vs QUÉ SE ACTUALIZA SOLO?
+============================================================
+
+REQUIERE NUEVA APK (build completo ~15 min):
+  - Cambios de diseño (colores, fuentes, layouts, pantallas nuevas)
+  - Nueva lógica de negocio (features, botones, flujos)
+  - Cambios en permisos de Android
+  - Actualizar librerías nativas (expo-location, mapbox, etc.)
+  - Cualquier cambio en el código de la app
+
+SE ACTUALIZA SOLO (sin nueva APK):
+  - Contenido en la landing page (cercania-landing.vercel.app)
+  - Reviews/calificaciones de usuarios
+  - El version.json (pero eso solo controla el aviso, no la app)
+  ⚠ NO existe "actualización automática de código" sin Play Store.
+    Cada cambio de código = nueva APK.
+
+
+FLUJO COMPLETO PARA LANZAR UNA NUEVA VERSIÓN
+============================================================
+
+PASO 1 — Hacer los cambios en el código
+  - Edita lo que necesites en app-scaffold/
+
+PASO 2 — Revertir .env a valores de producción
+  Abre app-scaffold/.env y verifica que diga:
+    EXPO_PUBLIC_TRACKING_INTERVAL_MS=600000
+    EXPO_PUBLIC_TRACKING_DISTANCE_M=50
+  (Si estuviste probando con 5000/1, cámbialos antes de compilar)
+
+PASO 3 — Subir versión en app.json
+  Abre app-scaffold/app.json y cambia:
+    "version": "0.1.0"  →  "0.2.0"   (o lo que corresponda)
+    "versionCode": 1    →  2          (incrementar siempre +1)
+
+PASO 4 — Compilar la nueva APK
+  Abre CMD en la carpeta app-scaffold/ y ejecuta:
+    set EXPO_TOKEN=8lUiZm2KOy194yZGyC809NY8gbN6P47pD6wEloC0
+    eas build --platform android --profile preview
+  Espera ~15 minutos. Al terminar EAS te da un link para descargar la APK.
+
+PASO 5 — Publicar en GitHub Releases
+  1. Ve a tu repo de GitHub → pestaña "Releases"
+  2. Clic en "Draft a new release"
+  3. Tag: v0.2.0  |  Title: Cercanía v0.2.0
+  4. Sube el archivo .apk descargado como asset
+  5. Publica el release
+  6. Copia la URL directa del .apk (termina en .apk)
+
+PASO 6 — Actualizar la landing
+  Abre landing/version.json y cambia:
+    {
+      "version": "0.2.0",
+      "mandatory": false,
+      "message": "Descripción del cambio para el usuario.",
+      "url": "https://cercania-landing.vercel.app/#download"
+    }
+  Si es un cambio crítico de seguridad, pon "mandatory": true
+
+PASO 7 — Actualizar el botón de descarga en la landing
+  Abre landing/index.html y busca "/downloads/cercania-latest.apk"
+  Reemplázalo con la URL directa de GitHub Releases del paso 5.
+
+PASO 8 — Subir cambios a Vercel
+  En la carpeta raíz del proyecto (cercania/):
+    git add landing/version.json landing/index.html
+    git commit -m "release: v0.2.0"
+    git push
+  Vercel despliega automáticamente en ~1 minuto.
+
+PASO 9 — Verificar
+  - Abre cercania-landing.vercel.app en el navegador
+  - Verifica que el botón de descarga apunte al nuevo APK
+  - Abre la app vieja en un celular → debe aparecer el modal
+    "Nueva versión disponible"
+
+
+VERSIONES PUBLICADAS
+============================================================
+v0.1.0 — 2026-06-11 — Primera versión pública
+  APK: (pendiente — build en progreso)
+  Notas: GPS en tiempo real, grupos, SOS, geofences, biometría
+
+
+TOKENS Y ACCESOS IMPORTANTES
+============================================================
+Expo account : ferrrrr23 (login con GitHub en expo.dev)
+EAS Token    : guardar en lugar seguro (no subir a git)
+Supabase     : xvwsxkpgvzneiaijkeek.supabase.co
+Vercel       : cercania-landing.vercel.app (auto-deploy desde git)

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tu enlace de acceso — Cercanía</title>
+</head>
+<body style="margin:0;padding:0;background:#F0FDF4;font-family:'Segoe UI',Arial,sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0FDF4;padding:40px 16px;">
+    <tr>
+      <td align="center">
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.10);">
+
+          <!-- Header verde -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#059669 0%,#10B981 100%);padding:40px 48px 36px;text-align:center;">
+              <div style="font-size:48px;margin-bottom:12px;">✨</div>
+              <h1 style="margin:0;font-size:22px;font-weight:800;color:#ffffff;">Acceso sin contraseña</h1>
+              <p style="margin:6px 0 0;font-size:14px;color:rgba(255,255,255,0.80);">Cercanía · Enlace mágico</p>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:44px 48px 32px;">
+              <p style="margin:0 0 28px;font-size:16px;color:#6B7280;line-height:1.6;">
+                Alguien (esperamos que seas tú) solicitó un enlace de acceso directo para <strong style="color:#1F2937;">Cercanía</strong>. Toca el botón para entrar sin contraseña.
+              </p>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <a href="{{ .ConfirmationURL }}"
+                       style="display:inline-block;background:linear-gradient(135deg,#059669,#10B981);color:#ffffff;font-size:17px;font-weight:700;text-decoration:none;padding:16px 40px;border-radius:14px;letter-spacing:0.02em;box-shadow:0 4px 16px rgba(16,185,129,0.35);">
+                      Entrar a Cercanía →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Separador -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
+                <tr>
+                  <td style="border-top:1px solid #E5E7EB;"></td>
+                  <td style="padding:0 12px;white-space:nowrap;font-size:12px;color:#9CA3AF;">o usa este enlace</td>
+                  <td style="border-top:1px solid #E5E7EB;"></td>
+                </tr>
+              </table>
+
+              <!-- URL fallback -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;border-radius:10px;">
+                <tr>
+                  <td style="padding:14px 16px;">
+                    <p style="margin:0;font-size:12px;color:#6B7280;word-break:break-all;">{{ .ConfirmationURL }}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:24px 0 0;font-size:13px;color:#9CA3AF;line-height:1.6;">
+                Este enlace expira en <strong style="color:#374151;">60 minutos</strong> y solo puede usarse una vez.
+                Si no lo pediste, ignora este correo.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Info box -->
+          <tr>
+            <td style="padding:0 48px 40px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0FDF4;border-radius:16px;border:1px solid #A7F3D0;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#065F46;">🔒 Acceso seguro</p>
+                    <p style="margin:0;font-size:13px;color:#047857;line-height:1.6;">
+                      Los enlaces mágicos son más seguros que las contraseñas porque expiran automáticamente y no pueden reutilizarse.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#1F2937;padding:28px 48px;text-align:center;border-radius:0 0 24px 24px;">
+              <p style="margin:0 0 4px;font-size:16px;">📍 <strong style="color:#F59E0B;">Cercanía</strong></p>
+              <p style="margin:0;font-size:12px;color:#9CA3AF;">Tu familia, siempre cerca · <a href="https://cercania-landing.vercel.app" style="color:#F59E0B;text-decoration:none;">cercania-landing.vercel.app</a></p>
+            </td>
+          </tr>
+
+        </table>
+
+        <p style="margin:24px 0 0;font-size:12px;color:#9CA3AF;text-align:center;">
+          © 2025 Cercanía · <a href="https://cercania-landing.vercel.app/privacy.html" style="color:#D97706;text-decoration:none;">Política de privacidad</a>
+        </p>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
