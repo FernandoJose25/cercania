@@ -13,6 +13,8 @@ import {
 } from '../src/services/notifications.service';
 import { useAppUpdate } from '../src/hooks/useAppUpdate';
 import { UpdateModal } from '../src/components/ui/UpdateModal';
+import { useSOSAlert } from '../src/hooks/useSOSAlert';
+import { SOSAlertModal } from '../src/components/sos/SOSAlertModal';
 
 SplashScreen.preventAutoHideAsync().catch(() => { });
 
@@ -28,6 +30,7 @@ export default function RootLayout() {
   const segments = useSegments();
   const notifTokenRegistered = useRef(false);
   const { updateAvailable, updateInfo, dismiss } = useAppUpdate();
+  const { activeAlert, clearAlert } = useSOSAlert();
 
   // Inicializar auth
   useEffect(() => {
@@ -118,6 +121,13 @@ export default function RootLayout() {
       <StatusBar style="dark" />
       {updateAvailable && updateInfo && (
         <UpdateModal visible info={updateInfo} onDismiss={dismiss} />
+      )}
+      {activeAlert && (
+        <SOSAlertModal
+          visible
+          data={activeAlert}
+          onDismiss={clearAlert}
+        />
       )}
       <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="(auth)" />

@@ -43,6 +43,7 @@ export default function AppLayout() {
       <Stack.Screen name="history" />
       <Stack.Screen name="group/[id]/chat" />
       <Stack.Screen name="sos-active" options={{ gestureEnabled: false, presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="sos-record" options={{ gestureEnabled: false, presentation: 'fullScreenModal' }} />
     </Stack>
     </>
   );
