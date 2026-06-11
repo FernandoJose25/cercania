@@ -1,0 +1,18 @@
+# Archivos que no necesita EAS para compilar
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/android/
+**/ios/
+**/.expo/
+**/coverage/
+**/.git/
+**/docs/
+**/preview/
+../.git/
+../landing/
+../services/
+../utils/
+../supabase/
