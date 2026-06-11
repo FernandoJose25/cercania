@@ -44,18 +44,15 @@ export default function HomeScreen() {
   };
 
   const confirmSOS = (groupId: string, groupName: string) => {
-    Alert.alert('¡EMERGENCIA!', `Enviar alerta SOS al grupo "${groupName}"?`, [
+    Alert.alert('¡EMERGENCIA!', `Enviar alerta SOS al grupo "${groupName}"?\n\nSe grabará un video de 10 segundos como evidencia.`, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'ACTIVAR SOS', style: 'destructive', onPress: () => sendSOS(groupId, groupName) }
+      {
+        text: 'ACTIVAR SOS', style: 'destructive', onPress: () => {
+          setSosModalVisible(false);
+          router.push({ pathname: '/(app)/sos-record', params: { groupId, groupName } });
+        }
+      }
     ]);
-  };
-
-  const sendSOS = async (groupId: string, groupName: string) => {
-    setSosLoading(true); setSosModalVisible(false);
-    try {
-      const result = await activateSOS(groupId);
-      router.push({ pathname: '/(app)/sos-active', params: { alertId: result.alert_id, groupName } });
-    } catch (e: any) { Alert.alert('Error', e.message); } finally { setSosLoading(false); }
   };
 
   const initials = getInitials(profile?.display_name ?? '');

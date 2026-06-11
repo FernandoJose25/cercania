@@ -162,7 +162,9 @@ export async function sendPushNotifications(payload: PushPayload): Promise<void>
 export async function notifySOSAlert(
     groupId: string,
     userName: string,
-    location: { latitude: number; longitude: number }
+    location: { latitude: number; longitude: number },
+    alertId?: string,
+    videoUrl?: string | null
 ): Promise<void> {
     const sb = await getSupabase();
     const { data: tokens } = await sb.rpc('get_group_push_tokens', { p_group_id: groupId });
@@ -171,10 +173,13 @@ export async function notifySOSAlert(
     await sendPushNotifications({
         to: tokens,
         title: '🆘 ALERTA DE EMERGENCIA',
-        body: `${userName} necesita ayuda ahora mismo. Toca para ver su ubicación.`,
+        body: `${userName} necesita ayuda ahora mismo. Toca para ver su ubicación${videoUrl ? ' y el video.' : '.'}`,
         data: {
             type: 'sos',
             groupId,
+            alertId: alertId ?? null,
+            videoUrl: videoUrl ?? null,
+            userName,
             latitude: location.latitude,
             longitude: location.longitude
         },

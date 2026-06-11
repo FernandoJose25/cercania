@@ -5,12 +5,14 @@ import {
     Pressable,
     RefreshControl,
     ScrollView,
+    Share,
     StyleSheet,
     Text,
     TextInput,
     View,
     Modal,
-    ActivityIndicator
+    ActivityIndicator,
+    Clipboard
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button } from '../../../../src/components/ui/Button';
@@ -30,6 +32,9 @@ export default function GroupDetailScreen() {
     const [editVisible, setEditVisible] = useState(false);
     const [newName, setNewName] = useState(group?.name ?? '');
     const [saving, setSaving] = useState(false);
+    const [inviteCode, setInviteCode] = useState<string | null>(null);
+    const [inviteVisible, setInviteVisible] = useState(false);
+    const [loadingCode, setLoadingCode] = useState(false);
 
     const loadMembers = async () => {
         if (!id) return;
@@ -90,6 +95,69 @@ export default function GroupDetailScreen() {
         } finally {
             setSaving(false);
         }
+    };
+
+    const loadInviteCode = async () => {
+        setLoadingCode(true);
+        try {
+            const sb = await getSupabase();
+            // Buscar código activo existente
+            const { data } = await sb
+                .from('invite_codes')
+                .select('code')
+                .eq('group_id', id)
+                .eq('is_active', true)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (data?.code) {
+                setInviteCode(data.code);
+            } else {
+                // Crear nuevo código via RPC
+                const { data: newCode, error } = await sb.rpc('create_group_with_invite', {
+                    p_group_id: id
+                });
+                if (error) throw error;
+                setInviteCode(newCode?.invite_code ?? null);
+            }
+            setInviteVisible(true);
+        } catch (e: any) {
+            // Si el RPC falla, generar código directo
+            try {
+                const sb = await getSupabase();
+                const { data: newCode, error } = await sb
+                    .from('invite_codes')
+                    .insert({ group_id: id, is_active: true })
+                    .select('code')
+                    .single();
+                if (error) throw error;
+                setInviteCode(newCode?.code ?? null);
+                setInviteVisible(true);
+            } catch (e2: any) {
+                Alert.alert('Error', 'No se pudo obtener el código de invitación.');
+            }
+        } finally {
+            setLoadingCode(false);
+        }
+    };
+
+    const handleShareCode = async () => {
+        if (!inviteCode) return;
+        try {
+            await Share.share({
+                message: `¡Únete a mi grupo "${group?.name}" en Cercanía!\n\nCódigo de invitación: *${inviteCode}*\n\nDescarga la app en: https://cercania.vercel.app`,
+                title: `Invitación al grupo ${group?.name}`,
+            });
+        } catch (e: any) {
+            console.warn(e.message);
+        }
+    };
+
+    const handleCopyCode = () => {
+        if (!inviteCode) return;
+        Clipboard.setString(inviteCode);
+        Alert.alert('Copiado ✅', `El código "${inviteCode}" está en tu portapapeles.`);
     };
 
     const isOwner = group?.owner_id === currentUserId;
@@ -157,6 +225,25 @@ export default function GroupDetailScreen() {
                     <Text style={styles.mapBtnArrow}>›</Text>
                 </Pressable>
 
+                {/* Botón invitar */}
+                <Pressable
+                    style={[styles.mapBtn, { marginTop: 0, marginBottom: Spacing.xl, borderColor: '#8B5CF6', backgroundColor: '#F5F3FF' }]}
+                    onPress={loadInviteCode}
+                    disabled={loadingCode}
+                >
+                    <Text style={styles.mapBtnIcon}>🔗</Text>
+                    <View>
+                        <Text style={[styles.mapBtnTitle, { color: '#6D28D9' }]}>
+                            {loadingCode ? 'Cargando código...' : 'Invitar al grupo'}
+                        </Text>
+                        <Text style={[styles.mapBtnSub, { color: '#7C3AED' }]}>Ver código y compartir por WhatsApp</Text>
+                    </View>
+                    {loadingCode
+                        ? <ActivityIndicator size="small" color="#7C3AED" style={{ marginLeft: 'auto' }} />
+                        : <Text style={[styles.mapBtnArrow, { color: '#7C3AED' }]}>›</Text>
+                    }
+                </Pressable>
+
                 {/* Lista de miembros */}
                 <Text style={styles.sectionTitle}>Miembros</Text>
 
@@ -199,6 +286,33 @@ export default function GroupDetailScreen() {
                     />
                 </View>
             </ScrollView>
+
+            {/* Modal código de invitación */}
+            <Modal visible={inviteVisible} transparent animationType="slide">
+                <View style={styles.overlay}>
+                    <View style={styles.modal}>
+                        <Text style={styles.modalTitle}>🔗 Código de invitación</Text>
+                        <Text style={[Typography.caption, { color: Colors.textSoft, marginBottom: Spacing.lg }]}>
+                            Comparte este código con quien quieras invitar al grupo "{group?.name}".
+                        </Text>
+
+                        {/* Código grande */}
+                        <Pressable onPress={handleCopyCode} style={styles.codeBox}>
+                            <Text style={styles.codeText}>{inviteCode}</Text>
+                            <Text style={styles.codeCopy}>Toca para copiar 📋</Text>
+                        </Pressable>
+
+                        {/* Botón compartir */}
+                        <Pressable style={styles.shareBtn} onPress={handleShareCode}>
+                            <Text style={styles.shareBtnText}>📤 Compartir por WhatsApp / SMS</Text>
+                        </Pressable>
+
+                        <Button title="Cerrar" variant="ghost" fullWidth
+                            onPress={() => setInviteVisible(false)}
+                            style={{ marginTop: Spacing.sm }} />
+                    </View>
+                </View>
+            </Modal>
 
             {/* Modal editar nombre */}
             <Modal visible={editVisible} transparent animationType="fade">
@@ -273,6 +387,18 @@ const styles = StyleSheet.create({
     memberRole: { ...Typography.caption, color: Colors.textSoft, marginTop: 2 },
 
     dangerZone: { marginTop: Spacing.xl },
+    codeBox: {
+        backgroundColor: '#F5F3FF', borderRadius: Radius.xl,
+        padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.lg,
+        borderWidth: 2, borderColor: '#8B5CF6', borderStyle: 'dashed',
+    },
+    codeText: { fontSize: 36, fontWeight: '900', color: '#6D28D9', letterSpacing: 6 },
+    codeCopy: { fontSize: 12, color: '#7C3AED', marginTop: 6 },
+    shareBtn: {
+        backgroundColor: '#25D366', borderRadius: Radius.lg,
+        paddingVertical: 14, alignItems: 'center', marginBottom: Spacing.sm,
+    },
+    shareBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
     modal: { backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.xl, width: '100%' },
