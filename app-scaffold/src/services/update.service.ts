@@ -33,17 +33,25 @@ function isNewer(remote: string, local: string): boolean {
 export async function checkForUpdate(): Promise<UpdateInfo> {
   try {
     const res = await fetch(VERSION_URL, { cache: 'no-store' });
-    if (!res.ok) return { available: false };
+    if (!res.ok) {
+      console.warn('[Update] HTTP error:', res.status);
+      return { available: false };
+    }
 
     const remote: RemoteVersion = await res.json();
     const local = Application.nativeApplicationVersion ?? '0.0.0';
 
-    if (isNewer(remote.version, local)) {
+    console.log('[Update] remota:', remote.version, '| local:', local, '| isNewer:', isNewer(remote.version, local));
+
+    // Usar version del app.json como fallback si nativeApplicationVersion falla
+    const effectiveLocal = local === '0.0.0' ? '0.1.1' : local;
+
+    if (isNewer(remote.version, effectiveLocal)) {
       return { available: true, remote };
     }
     return { available: false };
-  } catch {
-    // Sin conexión o servidor caído — no bloquear el arranque
+  } catch (e: any) {
+    console.warn('[Update] Error:', e.message);
     return { available: false };
   }
 }
