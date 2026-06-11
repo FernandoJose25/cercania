@@ -20,6 +20,7 @@ export default function RootLayout() {
   const init = useAuth(s => s.init);
   const initializing = useAuth(s => s.initializing);
   const session = useAuth(s => s.session);
+  const profile = useAuth(s => s.profile);
   const settings = useAuth(s => s.settings);
   const biometricGateOpen = useAuth(s => s.biometricGateOpen);
   const openBiometricGate = useAuth(s => s.openBiometricGate);
@@ -94,15 +95,19 @@ export default function RootLayout() {
     const inAuthGroup = segments[0] === '(auth)';
     const inAppGroup = segments[0] === '(app)';
     const onGate = segments[0] === 'biometric-gate';
+    const onCompleteProfile = inAuthGroup && segments[1] === 'complete-profile';
 
     if (!session) {
       if (!inAuthGroup) router.replace('/(auth)/welcome');
     } else if (biometricGateOpen) {
       if (!onGate) router.replace('/biometric-gate');
+    } else if (session && profile !== null && !profile?.display_name?.trim()) {
+      // Perfil sin nombre: pedir antes de entrar a la app
+      if (!onCompleteProfile) router.replace('/(auth)/complete-profile');
     } else {
       if (!inAppGroup) router.replace('/(app)/home');
     }
-  }, [initializing, session, biometricGateOpen, segments, router]);
+  }, [initializing, session, profile, biometricGateOpen, segments, router]);
 
   if (initializing) {
     return <AppSplashScreen />;

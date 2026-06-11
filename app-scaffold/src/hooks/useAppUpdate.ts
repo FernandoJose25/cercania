@@ -13,12 +13,15 @@ export function useAppUpdate() {
     const result = await checkForUpdate();
     if (result.available && result.remote) {
       setUpdateInfo(result.remote);
-      setDismissed(false); // mostrar de nuevo si hay versión más nueva que la anterior
+      setDismissed(false);
     }
   }, []);
 
-  // Chequeo inicial al montar
-  useEffect(() => { check(); }, [check]);
+  // Chequeo inicial con delay para que la navegación se estabilice primero
+  useEffect(() => {
+    const t = setTimeout(() => { check(); }, 3000);
+    return () => clearTimeout(t);
+  }, [check]);
 
   // Rechequear cuando el usuario vuelve a poner la app en primer plano
   useEffect(() => {
