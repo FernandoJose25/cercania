@@ -60,6 +60,17 @@ export default function RootLayout() {
           router.push('/(app)/settings/trusted-contacts');
         } else if (data?.type === 'recovery') {
           router.push('/(app)/settings/trusted-contacts');
+        } else if (data?.type === 'checkin_prompt' && data?.zoneId) {
+          router.push('/(app)/home');
+        } else if (data?.type === 'daily_summary') {
+          router.push('/(app)/home');
+        } else if (data?.type === 'gathering' && data?.groupId) {
+          router.push({
+            pathname: '/(app)/map/[groupId]',
+            params: { groupId: data.groupId }
+          });
+        } else if (data?.type === 'low_battery') {
+          router.push('/(app)/home');
         }
       }
     );

@@ -1,7 +1,7 @@
 // 📁 cercania/app-scaffold/app/(app)/profile.tsx
 import React, { useState, useEffect } from 'react';
 import {
-    Alert, Modal, Pressable, ScrollView, StyleSheet,
+    Alert, Image, Modal, Pressable, ScrollView, StyleSheet,
     Text, TextInput, View
 } from 'react-native';
 import { router } from 'expo-router';
@@ -123,9 +123,13 @@ export default function ProfileScreen() {
                 {/* Avatar */}
                 <View style={styles.avatarSection}>
                     <View style={styles.avatarRing}>
-                        <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>{initials || '?'}</Text>
-                        </View>
+                        {profile?.avatar_url ? (
+                            <Image source={{ uri: profile.avatar_url }} style={styles.avatarImg} />
+                        ) : (
+                            <View style={styles.avatar}>
+                                <Text style={styles.avatarText}>{initials || '?'}</Text>
+                            </View>
+                        )}
                         <View style={styles.verifiedBadge}>
                             <Text style={styles.verifiedIcon}>✓</Text>
                         </View>
@@ -153,6 +157,17 @@ export default function ProfileScreen() {
                         onPress={() => router.push('/(app)/settings/biometric')} />
                     <MenuItem icon="📍" label="Zonas seguras" sub="Gestiona tus geofences" color="#06B6D4"
                         onPress={() => router.push('/(app)/settings/geofences')} />
+                    <MenuItem icon="🔗" label="Compartir ubicación" sub="Link temporal para no-miembros" color="#F97316"
+                        onPress={() => router.push('/(app)/settings/share-location')} />
+                </View>
+
+                {/* Funciones avanzadas */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>FUNCIONES AVANZADAS</Text>
+                    <MenuItem icon="🗺️" label="Historial de recorridos" sub="Dónde estuviste hoy" color={Colors.primary}
+                        onPress={() => router.push('/(app)/history')} />
+                    <MenuItem icon="✈️" label="Modo viaje" sub="Tracking intensivo fuera de casa" color="#3B82F6"
+                        onPress={() => router.push('/(app)/settings/travel-mode')} />
                 </View>
 
                 {/* Recuperación */}
@@ -260,6 +275,7 @@ const styles = StyleSheet.create({
     avatarSection: { alignItems: 'center', paddingVertical: Spacing.xl },
     avatarRing: { position: 'relative', marginBottom: Spacing.md },
     avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', ...Shadows.glow },
+    avatarImg: { width: 96, height: 96, borderRadius: 48, ...Shadows.glow },
     avatarText: { fontSize: 36, fontWeight: '900', color: '#fff' },
     verifiedBadge: { position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: Colors.bg },
     verifiedIcon: { fontSize: 12, color: '#fff', fontWeight: '900' },

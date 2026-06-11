@@ -44,6 +44,16 @@ export async function signInWithGoogle() {
     });
 
     if (error) throw error;
+
+    // Sincronizar foto de perfil de Google automáticamente
+    const googleAvatar = userInfo.data?.user?.photo;
+    if (googleAvatar && data.user) {
+        await sb.from('profiles')
+            .update({ avatar_url: googleAvatar })
+            .eq('id', data.user.id)
+            .then(() => {}).catch(() => {});
+    }
+
     return data;
 }
 

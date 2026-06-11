@@ -1,7 +1,7 @@
 // 📁 cercania/app-scaffold/app/(app)/home.tsx
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Modal, Pressable,
+  ActivityIndicator, Alert, Image, Modal, Pressable,
   RefreshControl, ScrollView, StyleSheet, Switch, Text, View
 } from 'react-native';
 import { router } from 'expo-router';
@@ -14,6 +14,7 @@ import { useGroups } from '../../src/store/groups';
 import { useBatteryStatus } from '../../src/hooks/useBatteryStatus';
 import { getInitials } from '../../src/utils/format';
 import { activateSOS } from '../../src/services/sos.service';
+import { scheduleDailySummary } from '../../src/services/daily-summary.service';
 
 export default function HomeScreen() {
   const { profile } = useAuth();
@@ -23,7 +24,11 @@ export default function HomeScreen() {
   const [sosModalVisible, setSosModalVisible] = useState(false);
   const [sosLoading, setSosLoading] = useState(false);
 
-  useEffect(() => { initTracking(); loadGroups(); }, []);
+  useEffect(() => {
+    initTracking();
+    loadGroups();
+    scheduleDailySummary().catch(() => {});
+  }, []);
 
   const handleToggle = async (value: boolean) => {
     if (value) {
@@ -86,7 +91,10 @@ export default function HomeScreen() {
                 <Text style={styles.batteryText}>{battery.isCharging ? '⚡' : '🔋'} {battery.level ?? '--'}%</Text>
               </View>
               <Pressable style={styles.avatar} onPress={() => router.push('/(app)/profile')}>
-                <Text style={styles.avatarText}>{initials || '?'}</Text>
+                {profile?.avatar_url
+                  ? <Image source={{ uri: profile.avatar_url }} style={styles.avatarImg} />
+                  : <Text style={styles.avatarText}>{initials || '?'}</Text>
+                }
                 <View style={styles.avatarDot} />
               </Pressable>
             </View>
@@ -191,6 +199,22 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
+        {/* ── ACCIONES SECUNDARIAS ── */}
+        <View style={styles.actionsRow2}>
+          <Pressable style={styles.actionCard2} onPress={() => router.push('/(app)/history')}>
+            <Text style={styles.actionEmoji2}>🗺️</Text>
+            <Text style={styles.actionTitle2}>Historial</Text>
+          </Pressable>
+          <Pressable style={styles.actionCard2} onPress={() => router.push('/(app)/settings/share-location')}>
+            <Text style={styles.actionEmoji2}>🔗</Text>
+            <Text style={styles.actionTitle2}>Compartir</Text>
+          </Pressable>
+          <Pressable style={styles.actionCard2} onPress={() => router.push('/(app)/settings/travel-mode')}>
+            <Text style={styles.actionEmoji2}>✈️</Text>
+            <Text style={styles.actionTitle2}>Modo viaje</Text>
+          </Pressable>
+        </View>
+
         {/* ── GRUPOS ── */}
         <Text style={styles.sectionTitle}>Mis grupos</Text>
         {groupsLoading && groups.length === 0 ? (
@@ -260,6 +284,7 @@ const styles = StyleSheet.create({
   batteryText: { ...Typography.small, fontWeight: '700', color: Colors.text },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', ...Shadows.button },
   avatarText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  avatarImg: { width: 44, height: 44, borderRadius: 22 },
   avatarDot: { position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.accent, borderWidth: 2, borderColor: Colors.surface },
   statsRow: { flexDirection: 'row', gap: Spacing.sm },
   statCard: { flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, alignItems: 'center', ...Shadows.card },
@@ -300,6 +325,11 @@ const styles = StyleSheet.create({
   actionEmoji: { fontSize: 24 },
   actionTitle: { ...Typography.bodyBold, color: Colors.text, textAlign: 'center' },
   actionSub: { fontSize: 11, color: Colors.textMuted, marginTop: 2, textAlign: 'center' },
+
+  actionsRow2: { flexDirection: 'row', gap: Spacing.md, marginHorizontal: Spacing.xl, marginTop: Spacing.sm },
+  actionCard2: { flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.lg, paddingVertical: Spacing.md, alignItems: 'center', borderWidth: 1, borderColor: Colors.border },
+  actionEmoji2: { fontSize: 20, marginBottom: 4 },
+  actionTitle2: { fontSize: 11, fontWeight: '700', color: Colors.textSoft },
 
   emptyCard: { marginHorizontal: Spacing.xl, backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.xxl, alignItems: 'center', borderWidth: 1.5, borderColor: Colors.border, borderStyle: 'dashed' },
   emptyIcon: { fontSize: 52, marginBottom: Spacing.md },
