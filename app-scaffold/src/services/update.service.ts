@@ -40,11 +40,10 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
 
     const remote: RemoteVersion = await res.json();
     const local = Application.nativeApplicationVersion ?? '0.0.0';
+    // Si nativeApplicationVersion falla (devuelve null en dev builds), asumir la versión del app.json
+    const effectiveLocal = (local === '0.0.0' || local === null) ? '0.1.2' : local;
 
-    console.log('[Update] remota:', remote.version, '| local:', local, '| isNewer:', isNewer(remote.version, local));
-
-    // Usar version del app.json como fallback si nativeApplicationVersion falla
-    const effectiveLocal = local === '0.0.0' ? '0.1.1' : local;
+    console.log('[Update] remota:', remote.version, '| local:', effectiveLocal, '| isNewer:', isNewer(remote.version, effectiveLocal));
 
     if (isNewer(remote.version, effectiveLocal)) {
       return { available: true, remote };

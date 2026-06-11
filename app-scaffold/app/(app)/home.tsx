@@ -93,7 +93,7 @@ export default function HomeScreen() {
               <Pressable style={styles.avatar} onPress={() => router.push('/(app)/profile')}>
                 {profile?.avatar_url
                   ? <Image source={{ uri: profile.avatar_url }} style={styles.avatarImg} />
-                  : <Text style={styles.avatarText}>{initials || '?'}</Text>
+                  : <Text style={styles.avatarText} numberOfLines={1} adjustsFontSizeToFit>{initials || '?'}</Text>
                 }
                 <View style={styles.avatarDot} />
               </Pressable>

@@ -1,7 +1,8 @@
 // 📁 cercania/app-scaffold/app/(auth)/welcome.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated, Dimensions, Easing, Pressable, StyleSheet, Text, View
+  Animated, Dimensions, Easing, KeyboardAvoidingView, Platform,
+  Pressable, ScrollView, StyleSheet, Text, View
 } from 'react-native';
 import { router } from 'expo-router';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../src/lib/theme';
@@ -113,46 +114,53 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.bgTop} />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+      >
+        <MapIllustration />
 
-      <MapIllustration />
+        <Animated.View style={[styles.content, { transform: [{ translateY: contentAnim }], opacity: contentOpacity }]}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>📍 Localización familiar</Text>
+          </View>
+          <Text style={styles.title}>Mantente{'\n'}cerca de{'\n'}los tuyos</Text>
+          <Text style={styles.subtitle}>
+            Comparte tu ubicación en tiempo real. Alertas SOS, zonas seguras y privacidad total.
+          </Text>
+          <View style={styles.pillsRow}>
+            {['📍 Tiempo real', '🆘 SOS', '🔒 Privado', '🔋 Eficiente'].map(f => (
+              <View key={f} style={styles.pill}>
+                <Text style={styles.pillText}>{f}</Text>
+              </View>
+            ))}
+          </View>
+        </Animated.View>
 
-      <Animated.View style={[styles.content, { transform: [{ translateY: contentAnim }], opacity: contentOpacity }]}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>📍 Localización familiar</Text>
-        </View>
-        <Text style={styles.title}>Mantente{'\n'}cerca de{'\n'}los tuyos</Text>
-        <Text style={styles.subtitle}>
-          Comparte tu ubicación en tiempo real. Alertas SOS, zonas seguras y privacidad total.
-        </Text>
-        <View style={styles.pillsRow}>
-          {['📍 Tiempo real', '🆘 SOS', '🔒 Privado', '🔋 Eficiente'].map(f => (
-            <View key={f} style={styles.pill}>
-              <Text style={styles.pillText}>{f}</Text>
-            </View>
-          ))}
-        </View>
-      </Animated.View>
-
-      <Animated.View style={[styles.buttons, { transform: [{ translateY: btnAnim }], opacity: btnOpacity }]}>
-        <GoogleButton onPress={handleGoogle} loading={loading} label="Continuar con Google" />
-        <Text style={styles.termsText}>
-          Al continuar aceptas nuestros{' '}
-          <Text style={styles.termsLink}>Términos de uso</Text>
-          {' '}y{' '}
-          <Text style={styles.termsLink}>Política de privacidad</Text>
-        </Text>
-        <Pressable onPress={() => router.push('/(auth)/recovery-social')} style={styles.recoveryBtn}>
-          <Text style={styles.recoveryText}>¿Perdiste acceso a tu cuenta?</Text>
-        </Pressable>
-      </Animated.View>
-    </View>
+        <Animated.View style={[styles.buttons, { transform: [{ translateY: btnAnim }], opacity: btnOpacity }]}>
+          <GoogleButton onPress={handleGoogle} loading={loading} label="Continuar con Google" />
+          <Text style={styles.termsText}>
+            Al continuar aceptas nuestros{' '}
+            <Text style={styles.termsLink}>Términos de uso</Text>
+            {' '}y{' '}
+            <Text style={styles.termsLink}>Política de privacidad</Text>
+          </Text>
+          <Pressable onPress={() => router.push('/(auth)/recovery-social')} style={styles.recoveryBtn}>
+            <Text style={styles.recoveryText}>¿Perdiste acceso a tu cuenta?</Text>
+          </Pressable>
+        </Animated.View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.bg },
+  scrollContent: { flexGrow: 1 },
   bgTop: {
     position: 'absolute', top: 0, left: 0, right: 0, height: height * 0.52,
     backgroundColor: Colors.bgAlt,

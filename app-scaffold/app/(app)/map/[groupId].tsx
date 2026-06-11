@@ -9,7 +9,7 @@ import {
   View
 } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
-import MapView, { Circle, Marker, PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useGroupLive } from '../../../src/hooks/useGroupLive';
 import { useAuth } from '../../../src/store/auth';
 import { Colors, Radius, Shadows, Spacing, Typography, Tracking } from '../../../src/lib/theme';
@@ -27,13 +27,22 @@ export default function MapScreen() {
   const mapRef = useRef(null);
   const [selectedMemberId, setSelectedMemberId] = useState(null);
   const [mapReady, setMapReady] = useState(false);
-  const [following, setFollowing] = useState(true); // sigue tu ubicación hasta que el usuario mueva el mapa
+  const [mapError, setMapError] = useState(false);
+  const [following, setFollowing] = useState(true);
+  const mapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       getCurrentLocation().catch(() => { });
       startForegroundTracking(() => { }).catch(console.warn);
-      return () => { stopForegroundTracking().catch(() => { }); };
+      // Timeout de seguridad: si el mapa no carga en 10s, mostrar error
+      mapTimeoutRef.current = setTimeout(() => {
+        setMapReady(prev => { if (!prev) setMapError(true); return prev; });
+      }, 10000);
+      return () => {
+        stopForegroundTracking().catch(() => { });
+        if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current);
+      };
     }, [])
   );
 
@@ -93,12 +102,18 @@ export default function MapScreen() {
     );
   }
 
-  if (error) {
+  if (error || mapError) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Error: {error}</Text>
-        <Pressable onPress={refresh} style={styles.retryBtn}>
+        <Text style={{ fontSize: 48, marginBottom: 12 }}>🗺️</Text>
+        <Text style={styles.errorText}>
+          {mapError ? 'El mapa tardó demasiado en cargar.\nVerifica tu conexión a internet.' : `Error: ${error}`}
+        </Text>
+        <Pressable onPress={() => { setMapError(false); refresh(); }} style={styles.retryBtn}>
           <Text style={styles.retryText}>Reintentar</Text>
+        </Pressable>
+        <Pressable onPress={() => router.back()} style={[styles.retryBtn, { backgroundColor: Colors.surfaceAlt, marginTop: 8 }]}>
+          <Text style={[styles.retryText, { color: Colors.text }]}>Volver</Text>
         </Pressable>
       </View>
     );
@@ -123,7 +138,7 @@ export default function MapScreen() {
         loadingEnabled
         loadingIndicatorColor={Colors.primary}
         mapType="hybrid"
-        onMapReady={() => setMapReady(true)}
+        onMapReady={() => { setMapReady(true); if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current); }}
         onPress={() => setSelectedMemberId(null)}
         onPanDrag={() => setFollowing(false)}
       >
