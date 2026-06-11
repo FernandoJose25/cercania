@@ -1,0 +1,5 @@
+# Aquí van las imágenes de la app:
+#   icon.png              (1024x1024) - ícono principal
+#   adaptive-icon.png     (1024x1024) - ícono Android adaptativo
+#   splash.png            - pantalla de carga
+#   notification-icon.png (96x96)     - ícono de notificaciones

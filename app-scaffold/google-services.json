@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "677414769976",
+    "project_id": "cercania-3c770",
+    "storage_bucket": "cercania-3c770.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:677414769976:android:5f891dc532572b4a681dcd",
+        "android_client_info": {
+          "package_name": "com.tuempresa.cercania"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSHVfFLO57xkn7SpktRcTyWkUM7Dc-Jyk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

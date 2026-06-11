@@ -1,0 +1,5 @@
+# Pantallas de ajustes (próximas entregas):
+#   index.tsx             - menú principal de ajustes
+#   privacy.tsx           - privacidad (invisible, retención)
+#   trusted-contacts.tsx  - gestionar contactos de confianza
+#   biometric.tsx         - activar/desactivar biometría

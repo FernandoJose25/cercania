@@ -1,0 +1,273 @@
+// 📁 cercania/app-scaffold/app/(app)/group/[id]/index.tsx
+import React, { useEffect, useState } from 'react';
+import {
+    Alert,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+    Modal,
+    ActivityIndicator
+} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Button } from '../../../../src/components/ui/Button';
+import { Colors, Radius, Shadows, Spacing, Typography } from '../../../../src/lib/theme';
+import { useAuth } from '../../../../src/store/auth';
+import { useGroups } from '../../../../src/store/groups';
+import { getSupabase } from '../../../../src/lib/supabase';
+
+export default function GroupDetailScreen() {
+    const { id } = useLocalSearchParams<{ id: string }>();
+    const currentUserId = useAuth(s => s.user?.id);
+    const { groups, loadGroups, leaveGroup } = useGroups();
+    const group = groups.find(g => g.id === id);
+
+    const [members, setMembers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [editVisible, setEditVisible] = useState(false);
+    const [newName, setNewName] = useState(group?.name ?? '');
+    const [saving, setSaving] = useState(false);
+
+    const loadMembers = async () => {
+        if (!id) return;
+        setLoading(true);
+        try {
+            const sb = await getSupabase();
+            const { data, error } = await sb
+                .from('group_members')
+                .select('user_id, role, nickname, joined_at, profiles(display_name, avatar_url)')
+                .eq('group_id', id);
+            if (error) throw error;
+            setMembers(data ?? []);
+        } catch (e: any) {
+            Alert.alert('Error', e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { loadMembers(); }, [id]);
+
+    const handleLeave = () => {
+        Alert.alert(
+            'Salir del grupo',
+            `¿Seguro que quieres salir de "${group?.name}"?`,
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Salir',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await leaveGroup(id!);
+                            router.replace('/(app)/home');
+                        } catch (e: any) {
+                            Alert.alert('Error', e.message);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleSaveName = async () => {
+        if (!newName.trim()) return;
+        setSaving(true);
+        try {
+            const sb = await getSupabase();
+            const { error } = await sb
+                .from('groups')
+                .update({ name: newName.trim() })
+                .eq('id', id);
+            if (error) throw error;
+            await loadGroups();
+            setEditVisible(false);
+        } catch (e: any) {
+            Alert.alert('Error', e.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const isOwner = group?.owner_id === currentUserId;
+
+    if (!group) {
+        return (
+            <View style={styles.centered}>
+                <Text style={styles.errorText}>Grupo no encontrado</Text>
+                <Button title="Volver" variant="ghost" onPress={() => router.back()} />
+            </View>
+        );
+    }
+
+    return (
+        <>
+            <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={styles.content}
+                refreshControl={<RefreshControl refreshing={loading} onRefresh={loadMembers} />}
+            >
+                {/* Header */}
+                <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
+                    <Text style={styles.backText}>← Volver</Text>
+                </Pressable>
+
+                {/* Info del grupo */}
+                <View style={styles.groupHeader}>
+                    <View style={[styles.groupEmoji, { backgroundColor: group.color + '22' }]}>
+                        <Text style={styles.groupEmojiText}>{group.emoji}</Text>
+                    </View>
+                    <View style={styles.groupInfo}>
+                        <Text style={styles.groupName}>{group.name}</Text>
+                        <Text style={styles.groupSub}>{members.length} miembro{members.length !== 1 ? 's' : ''}</Text>
+                    </View>
+                    {isOwner && (
+                        <Pressable onPress={() => { setNewName(group.name); setEditVisible(true); }} hitSlop={10}>
+                            <Text style={styles.editIcon}>✏️</Text>
+                        </Pressable>
+                    )}
+                </View>
+
+                {/* Botón ver mapa */}
+                <Pressable
+                    style={styles.mapBtn}
+                    onPress={() => router.push({ pathname: '/(app)/map/[groupId]', params: { groupId: id } })}
+                >
+                    <Text style={styles.mapBtnIcon}>🗺️</Text>
+                    <View>
+                        <Text style={styles.mapBtnTitle}>Ver mapa en tiempo real</Text>
+                        <Text style={styles.mapBtnSub}>Mira dónde está cada miembro ahora</Text>
+                    </View>
+                    <Text style={styles.mapBtnArrow}>›</Text>
+                </Pressable>
+
+                {/* Lista de miembros */}
+                <Text style={styles.sectionTitle}>Miembros</Text>
+
+                {loading ? (
+                    <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing.lg }} />
+                ) : (
+                    <View style={styles.memberList}>
+                        {members.map((m: any) => {
+                            const isMe = m.user_id === currentUserId;
+                            const isGroupOwner = m.user_id === group.owner_id;
+                            return (
+                                <View key={m.user_id} style={styles.memberRow}>
+                                    <View style={styles.memberAvatar}>
+                                        <Text style={styles.memberInitial}>
+                                            {m.profiles?.display_name?.[0]?.toUpperCase() ?? '?'}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.memberInfo}>
+                                        <Text style={styles.memberName}>
+                                            {m.profiles?.display_name ?? 'Usuario'}
+                                            {isMe ? ' (Tú)' : ''}
+                                        </Text>
+                                        <Text style={styles.memberRole}>
+                                            {isGroupOwner ? '👑 Admin' : '👤 Miembro'}
+                                        </Text>
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
+                )}
+
+                {/* Salir del grupo */}
+                <View style={styles.dangerZone}>
+                    <Button
+                        title="Salir del grupo"
+                        variant="danger"
+                        fullWidth
+                        onPress={handleLeave}
+                    />
+                </View>
+            </ScrollView>
+
+            {/* Modal editar nombre */}
+            <Modal visible={editVisible} transparent animationType="fade">
+                <View style={styles.overlay}>
+                    <View style={styles.modal}>
+                        <Text style={styles.modalTitle}>Editar nombre</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            value={newName}
+                            onChangeText={setNewName}
+                            maxLength={40}
+                            autoFocus
+                            placeholderTextColor={Colors.textMuted}
+                        />
+                        <View style={styles.modalActions}>
+                            <Button title="Cancelar" variant="ghost" onPress={() => setEditVisible(false)} />
+                            <Button title="Guardar" variant="primary" loading={saving} onPress={handleSaveName} />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+        </>
+    );
+}
+
+const styles = StyleSheet.create({
+    scroll: { flex: 1, backgroundColor: Colors.bg },
+    content: { padding: Spacing.xl, paddingBottom: Spacing.xxxl },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
+    errorText: { ...Typography.body, color: Colors.danger },
+
+    back: { marginBottom: Spacing.lg },
+    backText: { ...Typography.body, color: Colors.textSoft },
+
+    groupHeader: {
+        flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+        backgroundColor: Colors.surface, borderRadius: Radius.lg,
+        padding: Spacing.lg, marginBottom: Spacing.md, ...Shadows.card
+    },
+    groupEmoji: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    groupEmojiText: { fontSize: 30 },
+    groupInfo: { flex: 1 },
+    groupName: { ...Typography.h2, color: Colors.text },
+    groupSub: { ...Typography.caption, color: Colors.textSoft, marginTop: 2 },
+    editIcon: { fontSize: 20 },
+
+    mapBtn: {
+        flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+        backgroundColor: Colors.primaryLight, borderRadius: Radius.lg,
+        padding: Spacing.lg, marginBottom: Spacing.xl,
+        borderWidth: 1.5, borderColor: Colors.primary
+    },
+    mapBtnIcon: { fontSize: 28 },
+    mapBtnTitle: { ...Typography.bodyBold, color: Colors.primaryDark },
+    mapBtnSub: { ...Typography.caption, color: Colors.primary, marginTop: 2 },
+    mapBtnArrow: { fontSize: 24, color: Colors.primary, marginLeft: 'auto' },
+
+    sectionTitle: { ...Typography.h3, color: Colors.text, marginBottom: Spacing.md },
+    memberList: { gap: Spacing.sm, marginBottom: Spacing.xl },
+    memberRow: {
+        flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+        backgroundColor: Colors.surface, borderRadius: Radius.lg,
+        padding: Spacing.md, ...Shadows.card
+    },
+    memberAvatar: {
+        width: 44, height: 44, borderRadius: 22,
+        backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center'
+    },
+    memberInitial: { color: '#fff', ...Typography.h3 },
+    memberInfo: { flex: 1 },
+    memberName: { ...Typography.bodyBold, color: Colors.text },
+    memberRole: { ...Typography.caption, color: Colors.textSoft, marginTop: 2 },
+
+    dangerZone: { marginTop: Spacing.xl },
+
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
+    modal: { backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.xl, width: '100%' },
+    modalTitle: { ...Typography.h2, color: Colors.text, marginBottom: Spacing.lg },
+    modalInput: {
+        backgroundColor: Colors.surfaceAlt, borderWidth: 1.5, borderColor: Colors.border,
+        borderRadius: Radius.lg, padding: Spacing.lg, ...Typography.body, color: Colors.text,
+        marginBottom: Spacing.lg
+    },
+    modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm }
+});

@@ -1,0 +1,4 @@
+# Componentes del mapa (próximas entregas):
+#   MemberPin.tsx       - pin de cada miembro con avatar
+#   GeofenceCircle.tsx  - círculo de zona "casa", "trabajo"
+#   SOSBeacon.tsx       - faro animado para alerta SOS

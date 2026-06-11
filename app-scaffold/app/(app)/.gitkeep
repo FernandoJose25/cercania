@@ -1,0 +1,4 @@
+# Pantallas CON sesión iniciada (próximas entregas):
+#   _layout.tsx           - layout autenticado
+#   home.tsx              - lista de grupos
+#   sos.tsx               - pantalla SOS

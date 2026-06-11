@@ -1,0 +1,8 @@
+# Lógica de negocio (próximas entregas):
+#   auth.service.ts          - registro, login, OTP, recuperación
+#   tracking.service.ts      - background location + batería
+#   geofencing.service.ts    - detección "llegué bien"
+#   sos.service.ts           - botón de emergencia
+#   recovery.service.ts      - recuperación social
+#   notifications.service.ts - push notifications
+#   biometric.service.ts     - Face ID / huella

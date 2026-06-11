@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cercanía — Mantén a tu familia siempre cerca</title>
+  <meta name="description" content="Cercanía es la app familiar que te permite ver dónde está cada miembro de tu familia en tiempo real, enviar alertas SOS y definir zonas seguras. Descarga gratis para Android." />
+  <meta name="keywords" content="localización familiar, app familia, GPS tiempo real, seguridad familiar, SOS emergencia, geofence, Android" />
+  <meta name="author" content="Cercanía" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Cercanía — Mantén a tu familia siempre cerca" />
+  <meta property="og:description" content="Ubicación en tiempo real, alertas SOS y zonas seguras para toda tu familia. Gratis para Android." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://cercania.app" />
+  <meta property="og:image" content="https://cercania.app/assets/og-image.png" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Cercanía — App familiar de ubicación en tiempo real" />
+  <meta name="twitter:description" content="Ubica a tu familia, activa SOS y define zonas seguras. Descarga gratis para Android." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════ NAVBAR ═══ -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="logo-icon">📍</span>
+        <span class="logo-text">Cercanía</span>
+      </a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#features">Funciones</a></li>
+        <li><a href="#how">Cómo funciona</a></li>
+        <li><a href="#security">Seguridad</a></li>
+        <li><a href="#download">Descargar</a></li>
+      </ul>
+      <a href="#download" class="btn btn-primary nav-cta">Descargar gratis</a>
+      <button class="hamburger" id="hamburger" aria-label="Abrir menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════ HERO ═══ -->
+  <section class="hero" id="home">
+    <div class="hero-bg">
+      <div class="hero-blob blob-1"></div>
+      <div class="hero-blob blob-2"></div>
+      <div class="hero-blob blob-3"></div>
+    </div>
+    <div class="container hero-inner">
+      <div class="hero-text fade-in">
+        <div class="badge">
+          <span class="badge-dot"></span>
+          Disponible para Android
+        </div>
+        <h1 class="hero-title">
+          Mantén a tu familia<br />
+          <span class="highlight">siempre cerca</span>
+        </h1>
+        <p class="hero-subtitle">
+          Comparte ubicación en tiempo real, activa alertas SOS y define zonas seguras.
+          Todo en una app diseñada para familias que se cuidan.
+        </p>
+        <div class="hero-actions">
+          <a href="/downloads/cercania-latest.apk" class="btn btn-primary btn-large" download>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar APK gratis
+          </a>
+          <a href="#how" class="btn btn-ghost">
+            Ver cómo funciona
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+        </div>
+        <p class="hero-version">Versión 0.1.0 · Android 8.0+ · Gratis</p>
+      </div>
+
+      <div class="hero-visual fade-in-delay">
+        <div class="phone-mockup">
+          <div class="phone-screen">
+            <div class="map-ui">
+              <div class="map-bg"></div>
+              <div class="map-pin pin-1">
+                <div class="pin-avatar" style="background:#F59E0B">M</div>
+                <div class="pin-pulse"></div>
+              </div>
+              <div class="map-pin pin-2">
+                <div class="pin-avatar" style="background:#10B981">P</div>
+                <div class="pin-pulse" style="border-color:#10B981"></div>
+              </div>
+              <div class="map-pin pin-3">
+                <div class="pin-avatar" style="background:#6366F1">L</div>
+                <div class="pin-pulse" style="border-color:#6366F1"></div>
+              </div>
+              <div class="geofence-circle"></div>
+              <div class="map-card">
+                <div class="map-card-dot"></div>
+                <div>
+                  <div class="map-card-name">Mamá</div>
+                  <div class="map-card-info">En casa · hace 2 min</div>
+                </div>
+                <div class="map-card-battery">🔋 82%</div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-notch"></div>
+        </div>
+        <div class="floating-card card-sos">
+          <span>🆘</span>
+          <div>
+            <div class="fc-title">Alerta SOS</div>
+            <div class="fc-sub">Notifica a toda la familia</div>
+          </div>
+        </div>
+        <div class="floating-card card-zone">
+          <span>📍</span>
+          <div>
+            <div class="fc-title">Zona segura</div>
+            <div class="fc-sub">Llegó al colegio ✓</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-wave">
+      <svg viewBox="0 0 1440 80" preserveAspectRatio="none"><path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="#ffffff"/></svg>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ STATS ═══ -->
+  <section class="stats">
+    <div class="container stats-inner">
+      <div class="stat-item fade-in">
+        <div class="stat-num">Real-time</div>
+        <div class="stat-label">Actualización GPS</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item fade-in">
+        <div class="stat-num">SOS</div>
+        <div class="stat-label">En 1 toque</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item fade-in">
+        <div class="stat-num">100%</div>
+        <div class="stat-label">Gratis</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item fade-in">
+        <div class="stat-num">Seguro</div>
+        <div class="stat-label">Cifrado end-to-end</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ FEATURES ═══ -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-header fade-in">
+        <div class="section-tag">Funcionalidades</div>
+        <h2 class="section-title">Todo lo que tu familia necesita,<br /><span class="highlight">en un solo lugar</span></h2>
+        <p class="section-subtitle">Diseñado para que mamá, papá, hijos y abuelos puedan usarlo sin complicaciones.</p>
+      </div>
+
+      <div class="features-grid">
+
+        <div class="feature-card card-large fade-in">
+          <div class="feature-icon-wrap icon-amber">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <h3>Ubicación en tiempo real</h3>
+          <p>Ve en el mapa exactamente dónde está cada miembro de tu familia. Se actualiza automáticamente mientras se mueven, con nivel de batería incluido.</p>
+          <div class="feature-tag">GPS • Mapa interactivo</div>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon-wrap icon-red">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <h3>Botón SOS</h3>
+          <p>En emergencias, un solo toque envía tu ubicación exacta con foto y audio a toda tu familia al instante.</p>
+          <div class="feature-tag">Emergencias</div>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon-wrap icon-green">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3>Zonas seguras</h3>
+          <p>Dibuja un círculo alrededor de casa, el colegio o el trabajo. Recibe notificación instantánea cuando alguien entra o sale.</p>
+          <div class="feature-tag">Geofences • Notificaciones</div>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon-wrap icon-purple">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </div>
+          <h3>Modo invisible</h3>
+          <p>Pausa tu ubicación cuando necesitas privacidad, sin desinstalar la app ni cerrar sesión. Tú decides cuándo.</p>
+          <div class="feature-tag">Privacidad</div>
+        </div>
+
+        <div class="feature-card fade-in">
+          <div class="feature-icon-wrap icon-blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <h3>Protección biométrica</h3>
+          <p>Bloquea la app con huella dactilar o Face ID. Solo tú puedes abrirla, aunque alguien tenga tu teléfono.</p>
+          <div class="feature-tag">Face ID • Huella</div>
+        </div>
+
+        <div class="feature-card card-large fade-in">
+          <div class="feature-icon-wrap icon-amber">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </div>
+          <h3>Recuperación social</h3>
+          <p>¿Olvidaste tu contraseña? Tus contactos de confianza pueden verificar tu identidad y recuperar tu cuenta. Sin depender del email.</p>
+          <div class="feature-tag">Seguridad avanzada • Sin contraseña perdida</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ HOW IT WORKS ═══ -->
+  <section class="how" id="how">
+    <div class="how-bg">
+      <div class="how-blob"></div>
+    </div>
+    <div class="container">
+      <div class="section-header fade-in">
+        <div class="section-tag">Cómo funciona</div>
+        <h2 class="section-title">Empieza en <span class="highlight">3 minutos</span></h2>
+        <p class="section-subtitle">No necesitas crear cuenta de Google ni dar tarjeta de crédito. Solo descarga e instala.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step fade-in">
+          <div class="step-number">01</div>
+          <div class="step-content">
+            <div class="step-icon">📲</div>
+            <h3>Descarga e instala</h3>
+            <p>Descarga el APK desde este sitio. En Android, ve a <strong>Ajustes → Seguridad → Instalar apps desconocidas</strong> y activa el permiso para tu navegador. Luego abre el archivo descargado.</p>
+          </div>
+          <div class="step-line"></div>
+        </div>
+
+        <div class="step fade-in">
+          <div class="step-number">02</div>
+          <div class="step-content">
+            <div class="step-icon">👨‍👩‍👧‍👦</div>
+            <h3>Crea tu grupo familiar</h3>
+            <p>Regístrate con tu email, crea un grupo y comparte el código de 6 dígitos con tu familia. Cada miembro se une desde su propio teléfono en segundos.</p>
+          </div>
+          <div class="step-line"></div>
+        </div>
+
+        <div class="step fade-in">
+          <div class="step-number">03</div>
+          <div class="step-content">
+            <div class="step-icon">🗺️</div>
+            <h3>Comparte en tiempo real</h3>
+            <p>Abre el mapa y ve a toda tu familia. Configura zonas seguras, activa notificaciones y ten el botón SOS siempre listo. Tu familia está a un vistazo de distancia.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ SECURITY ═══ -->
+  <section class="security" id="security">
+    <div class="container security-inner">
+      <div class="security-text fade-in">
+        <div class="section-tag">Privacidad y seguridad</div>
+        <h2 class="section-title">Tu familia primero.<br /><span class="highlight">Tu privacidad también.</span></h2>
+        <p class="section-subtitle">Cercanía fue diseñada desde el primer día con seguridad real, no como parche.</p>
+
+        <div class="security-list">
+          <div class="security-item">
+            <div class="sec-icon">🔒</div>
+            <div>
+              <strong>Cifrado en tránsito y reposo</strong>
+              <p>Toda comunicación usa HTTPS y los datos en base de datos están cifrados. Nunca viajan en texto plano.</p>
+            </div>
+          </div>
+          <div class="security-item">
+            <div class="sec-icon">👁️</div>
+            <div>
+              <strong>Solo ven tu ubicación quienes tú eliges</strong>
+              <p>Row Level Security (RLS) garantiza que solo los miembros de tu grupo puedan ver tu posición. Nadie más, ni nosotros.</p>
+            </div>
+          </div>
+          <div class="security-item">
+            <div class="sec-icon">🥷</div>
+            <div>
+              <strong>Modo invisible con un toque</strong>
+              <p>Pausa tu ubicación cuando necesites privacidad. No hay rastros, no hay preguntas.</p>
+            </div>
+          </div>
+          <div class="security-item">
+            <div class="sec-icon">🤝</div>
+            <div>
+              <strong>Recuperación sin email</strong>
+              <p>Si pierdes acceso, tus contactos de confianza verifican tu identidad. No dependes de un email hackeado.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="security-visual fade-in-delay">
+        <div class="sec-card">
+          <div class="sec-card-header">
+            <span class="sec-shield">🛡️</span>
+            <div>
+              <div class="sec-card-title">Sesión activa</div>
+              <div class="sec-card-sub">Protegida con biometría</div>
+            </div>
+            <div class="sec-badge-green">Segura</div>
+          </div>
+          <div class="sec-divider"></div>
+          <div class="sec-row">
+            <span>Cifrado</span>
+            <span class="sec-check">✓ AES-256</span>
+          </div>
+          <div class="sec-row">
+            <span>Acceso</span>
+            <span class="sec-check">✓ Solo tu grupo</span>
+          </div>
+          <div class="sec-row">
+            <span>Ubicación</span>
+            <span class="sec-check">✓ Compartida</span>
+          </div>
+          <div class="sec-row">
+            <span>Modo invisible</span>
+            <span class="sec-off">○ Inactivo</span>
+          </div>
+          <div class="sec-divider"></div>
+          <div class="sec-biometric">
+            <span>🔐</span>
+            <span>Bloqueada con huella dactilar</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ REVIEWS ═══ -->
+  <section class="reviews" id="reviews">
+    <div class="container">
+      <div class="section-header fade-in">
+        <div class="section-tag">Opiniones reales</div>
+        <h2 class="section-title">Lo que dice nuestra <span class="highlight">familia de usuarios</span></h2>
+        <p class="section-subtitle">Reseñas enviadas directamente desde la app.</p>
+      </div>
+      <div class="reviews-stats fade-in" id="reviewsStats">
+        <div class="rs-score" id="rsScore">—</div>
+        <div class="rs-stars" id="rsStars"></div>
+        <div class="rs-count" id="rsCount">Cargando reseñas...</div>
+      </div>
+      <div class="reviews-grid" id="reviewsGrid">
+        <div class="review-skeleton"></div>
+        <div class="review-skeleton"></div>
+        <div class="review-skeleton"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ DOWNLOAD ═══ -->
+  <section class="download" id="download">
+    <div class="download-bg">
+      <div class="dl-blob dl-blob-1"></div>
+      <div class="dl-blob dl-blob-2"></div>
+    </div>
+    <div class="container download-inner">
+      <div class="dl-text fade-in">
+        <div class="section-tag tag-light">Descarga gratuita</div>
+        <h2 class="dl-title">Empieza hoy.<br />Es completamente gratis.</h2>
+        <p class="dl-sub">Sin suscripción, sin anuncios, sin vender tus datos. Cercanía es tuya.</p>
+
+        <a href="/downloads/cercania-latest.apk" class="btn btn-white btn-large" download>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Descargar Cercanía APK
+        </a>
+        <p class="dl-meta">Versión 0.1.0 · ~45 MB · Android 8.0+</p>
+
+        <div class="install-guide">
+          <div class="ig-title">¿Cómo instalar?</div>
+          <ol class="ig-steps">
+            <li>Descarga el archivo APK desde este botón</li>
+            <li>En tu Android: <strong>Ajustes → Seguridad → Instalar apps de fuentes desconocidas</strong> → activa para tu navegador</li>
+            <li>Abre el archivo APK descargado y toca <strong>Instalar</strong></li>
+            <li>¡Listo! Abre Cercanía y crea tu cuenta</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="dl-visual fade-in-delay">
+        <div class="qr-card">
+          <div class="qr-icon">📱</div>
+          <div class="qr-title">Escanea para descargar</div>
+          <div class="qr-placeholder">
+            <div class="qr-inner">
+              <div class="qr-logo">📍</div>
+            </div>
+          </div>
+          <div class="qr-sub">O toca el botón de descarga</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ FOOTER ═══ -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <a href="#" class="nav-logo footer-logo">
+          <span class="logo-icon">📍</span>
+          <span class="logo-text">Cercanía</span>
+        </a>
+        <p class="footer-tagline">Mantén a tu familia siempre cerca.</p>
+        <p class="footer-legal">Una app hecha con ❤️ para familias que se cuidan.</p>
+      </div>
+
+      <div class="footer-links">
+        <div class="footer-col">
+          <div class="footer-col-title">App</div>
+          <a href="#features">Funciones</a>
+          <a href="#how">Cómo funciona</a>
+          <a href="#security">Seguridad</a>
+          <a href="#download">Descargar</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-col-title">Legal</div>
+          <a href="privacy.html">Política de privacidad</a>
+          <a href="privacy.html#terms">Términos de uso</a>
+          <a href="privacy.html#data">Datos que recopilamos</a>
+        </div>
+        <div class="footer-col">
+          <div class="footer-col-title">Contacto</div>
+          <a href="mailto:hola@cercania.app">hola@cercania.app</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container">
+        <span>© 2025 Cercanía. Todos los derechos reservados.</span>
+        <span>Versión 0.1.0</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
