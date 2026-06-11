@@ -13,7 +13,7 @@ import { getSupabase } from '../../src/lib/supabase';
 const OTP_LENGTH = 8;
 
 export default function VerifyOTPScreen() {
-  const { email } = useLocalSearchParams<{ email: string }>();
+  const { email, flow } = useLocalSearchParams<{ email: string; flow?: string }>();
   const setSession = useAuth(s => s.setSession);
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,9 +50,14 @@ export default function VerifyOTPScreen() {
     setLoading(true);
     try {
       const sb = await getSupabase();
-      const { data, error } = await sb.auth.verifyOtp({ email, token: otp, type: 'signup' });
+      const otpType = flow === 'recovery' ? 'recovery' : 'signup';
+      const { data, error } = await sb.auth.verifyOtp({ email, token: otp, type: otpType });
       if (error) { doShake(); throw error; }
-      await setSession(data.session);
+      if (flow === 'recovery') {
+        router.replace('/(auth)/reset-password');
+      } else {
+        await setSession(data.session);
+      }
     } catch (e: any) { alert(e.message); } finally { setLoading(false); }
   };
 
@@ -60,7 +65,8 @@ export default function VerifyOTPScreen() {
     setResending(true);
     try {
       const sb = await getSupabase();
-      await sb.auth.resend({ type: 'signup', email });
+      const resendType = flow === 'recovery' ? 'recovery' : 'signup';
+      await sb.auth.resend({ type: resendType, email } as any);
       setCountdown(60);
     } catch (e: any) { alert(e.message); } finally { setResending(false); }
   };
