@@ -1,0 +1,154 @@
+{
+  "expo": {
+    "name": "Cercanía",
+    "slug": "cercania",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "cercania",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FEF3C7"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tuempresa.cercania",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "remote-notification",
+          "location",
+          "fetch",
+          "remote-notification"
+        ],
+        "NSLocationWhenInUseUsageDescription": "Cercanía necesita tu ubicación para mostrarte en el mapa de tu grupo familiar.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Cercanía necesita acceso a tu ubicación en segundo plano para mantener a tu familia informada.",
+        "NSLocationAlwaysUsageDescription": "Cercanía usa tu ubicación en segundo plano para tu grupo familiar.",
+        "NSCameraUsageDescription": "Solo para el botón SOS.",
+        "NSMicrophoneUsageDescription": "Solo para el botón SOS.",
+        "NSFaceIDUsageDescription": "Cercanía usa Face ID para proteger el acceso."
+      }
+    },
+    "android": {
+      "package": "com.tuempresa.cercania",
+      "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F59E0B"
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyD92VHuIN7P6RdBKnmMGCGd-a7TygLlJco"
+        }
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Cercanía necesita acceso a tu ubicación para tu familia, incluso cuando la app esté cerrada.",
+          "locationAlwaysPermission": "Permite a Cercanía actualizar tu ubicación en segundo plano.",
+          "locationWhenInUsePermission": "Cercanía usa tu ubicación para mostrarte en el mapa de tu grupo.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Cercanía usa Face ID para proteger el acceso."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#F59E0B"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Solo para el botón SOS.",
+          "microphonePermission": "Solo para el botón SOS."
+        }
+      ],
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "60d6a0df-e52a-401a-8e04-8027d04a6221"
+      },
+      "SUPABASE_URL": "https://xvwsxkpgvzneiaijkeek.supabase.co",
+      "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2d3N4a3BndnpuZWlhaWprZWVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1ODA1NzQsImV4cCI6MjA5NTE1NjU3NH0.JHENwv5_R3r286Btk27GlXYr4pUR4-XDQTNtU1v_Vx8",
+      "MAPBOX_PUBLIC_TOKEN": "pk.eyJ1IjoicHJveWVjdG9zLWZlciIsImEiOiJjbXBqZ2FiNmgxNmcxMnRwczNpengyZ2Y3In0.BkdP-jpljH8SkA5G4DpcUg",
+      "router": {
+        "origin": false
+      }
+    },
+    "owner": "ferrrrr23",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/60d6a0df-e52a-401a-8e04-8027d04a6221"
+    }
+  }
+}

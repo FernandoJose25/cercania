@@ -1,0 +1,7 @@
+# Pantallas SIN sesión iniciada (próximas entregas):
+#   welcome.tsx           - pantalla de bienvenida
+#   login.tsx             - inicio de sesión
+#   register.tsx          - registro
+#   verify-otp.tsx        - verificación de código
+#   forgot-password.tsx   - "olvidé mi contraseña"
+#   recovery-social.tsx   - recuperación social

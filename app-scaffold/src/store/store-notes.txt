@@ -1,0 +1,5 @@
+# Stores de Zustand. Por ahora tienes:
+#   auth.ts  ✅ (ya entregado)
+# Próximos:
+#   tracking.ts - estado del tracker (activo/pausado, última actualización)
+#   groups.ts   - cache de grupos del usuario

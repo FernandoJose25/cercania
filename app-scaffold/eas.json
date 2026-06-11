@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 20.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ENV": "production",
+        "EXPO_PUBLIC_TRACKING_INTERVAL_MS": "600000",
+        "EXPO_PUBLIC_TRACKING_DISTANCE_M": "50"
+      },
+      "channel": "preview"
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_ENV": "production",
+        "EXPO_PUBLIC_TRACKING_INTERVAL_MS": "600000",
+        "EXPO_PUBLIC_TRACKING_DISTANCE_M": "50"
+      },
+      "channel": "production"
+    }
+  }
+}

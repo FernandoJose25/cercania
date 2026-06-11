@@ -1,0 +1,5 @@
+# Custom React hooks (próximas entregas):
+#   useGroupLive.ts          - suscripción realtime del mapa
+#   useLocationPermission.ts - estado de permisos
+#   useBatteryStatus.ts      - nivel y carga de batería
+#   useNetworkStatus.ts      - conexión a internet

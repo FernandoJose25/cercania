@@ -1,0 +1,4 @@
+# Funciones helper sin estado (próximas entregas):
+#   format.ts      - fechas relativas ("hace 5 min"), distancias
+#   validation.ts  - email, password (8+ caracteres, mayúscula, etc)
+#   permissions.ts - helpers de permisos del SO
