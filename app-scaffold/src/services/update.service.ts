@@ -2,7 +2,7 @@
 import * as Application from 'expo-application';
 
 // Cambia esta URL cuando tengas tu servidor/GitHub Pages listo
-const VERSION_URL = 'https://cercania-landing.vercel.app/version.json';
+const VERSION_URL = 'https://cercania.vercel.app/version.json';
 
 export interface RemoteVersion {
   version: string;       // "1.2.0"

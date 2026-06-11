@@ -12,7 +12,7 @@ REQUIERE NUEVA APK (build completo ~15 min):
   - Cualquier cambio en el código de la app
 
 SE ACTUALIZA SOLO (sin nueva APK):
-  - Contenido en la landing page (cercania-landing.vercel.app)
+  - Contenido en la landing page (cercania.vercel.app)
   - Reviews/calificaciones de usuarios
   - El version.json (pero eso solo controla el aviso, no la app)
   ⚠ NO existe "actualización automática de código" sin Play Store.
@@ -56,7 +56,7 @@ PASO 6 — Actualizar la landing
       "version": "0.2.0",
       "mandatory": false,
       "message": "Descripción del cambio para el usuario.",
-      "url": "https://cercania-landing.vercel.app/#download"
+      "url": "https://cercania.vercel.app/#download"
     }
   Si es un cambio crítico de seguridad, pon "mandatory": true
 
@@ -72,7 +72,7 @@ PASO 8 — Subir cambios a Vercel
   Vercel despliega automáticamente en ~1 minuto.
 
 PASO 9 — Verificar
-  - Abre cercania-landing.vercel.app en el navegador
+  - Abre cercania.vercel.app en el navegador
   - Verifica que el botón de descarga apunte al nuevo APK
   - Abre la app vieja en un celular → debe aparecer el modal
     "Nueva versión disponible"
@@ -90,4 +90,4 @@ TOKENS Y ACCESOS IMPORTANTES
 Expo account : ferrrrr23 (login con GitHub en expo.dev)
 EAS Token    : guardar en lugar seguro (no subir a git)
 Supabase     : xvwsxkpgvzneiaijkeek.supabase.co
-Vercel       : cercania-landing.vercel.app (auto-deploy desde git)
+Vercel       : cercania.vercel.app (auto-deploy desde git)
