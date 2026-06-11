@@ -144,6 +144,19 @@ export default function GroupDetailScreen() {
                     <Text style={styles.mapBtnArrow}>›</Text>
                 </Pressable>
 
+                {/* Botón chat grupal */}
+                <Pressable
+                    style={[styles.mapBtn, { marginTop: 8 }]}
+                    onPress={() => router.push({ pathname: '/(app)/group/[id]/chat', params: { id } })}
+                >
+                    <Text style={styles.mapBtnIcon}>💬</Text>
+                    <View>
+                        <Text style={styles.mapBtnTitle}>Chat del grupo</Text>
+                        <Text style={styles.mapBtnSub}>Mensajes rápidos de ubicación</Text>
+                    </View>
+                    <Text style={styles.mapBtnArrow}>›</Text>
+                </Pressable>
+
                 {/* Lista de miembros */}
                 <Text style={styles.sectionTitle}>Miembros</Text>
 

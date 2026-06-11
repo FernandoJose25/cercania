@@ -5,6 +5,8 @@ import * as Battery from 'expo-battery';
 import { Platform } from 'react-native';
 import { getSupabase } from '../lib/supabase';
 import { gpsKalman } from '../utils/kalman';
+import { notifyLowBattery } from './notifications.service';
+import { checkGeofenceArrivals } from './checkin.service';
 
 export const TRACKING_TASK = 'CERCANIA_LOCATION_TASK';
 
@@ -23,6 +25,7 @@ const MIN_MOVEMENT_M = 3;      // Ignorar movimientos < 3m si speed ≈ 0
 let _lastLat: number | null = null;
 let _lastLng: number | null = null;
 let _fgSubscription: Location.LocationSubscription | null = null;
+let _lowBatteryAlerted = false; // evitar spam de alertas de batería
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -91,6 +94,29 @@ async function sendLocation(location: Location.LocationObject): Promise<void> {
 
     _lastLat = filtered.lat;
     _lastLng = filtered.lng;
+
+    // Alerta de batería baja al grupo (solo una vez por sesión hasta recargar)
+    if (batteryLevel != null && batteryLevel <= LOW_BATTERY && !isCharging && !_lowBatteryAlerted) {
+      _lowBatteryAlerted = true;
+      try {
+        const sb = await getSupabase();
+        const { data: { user } } = await sb.auth.getUser();
+        if (user) {
+          const { data: profile } = await sb.from('profiles').select('display_name').eq('id', user.id).single();
+          const { data: memberships } = await sb.from('group_members').select('group_id').eq('user_id', user.id);
+          for (const m of memberships ?? []) {
+            await notifyLowBattery(m.group_id, profile?.display_name ?? 'Alguien', batteryLevel).catch(() => {});
+          }
+        }
+      } catch (_) {}
+    }
+    // Resetear alerta cuando carga superó el umbral
+    if (isCharging || (batteryLevel != null && batteryLevel > LOW_BATTERY + 5)) {
+      _lowBatteryAlerted = false;
+    }
+
+    // Check-in automático al llegar a zonas seguras
+    checkGeofenceArrivals(filtered.lat, filtered.lng).catch(() => {});
 
     const sb = await getSupabase();
     await sb.rpc('update_location', {

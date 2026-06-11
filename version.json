@@ -1,6 +1,6 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "mandatory": false,
-  "message": "Primera versión pública de Cercanía.",
-  "url": "https://tudominio.com/descargar"
+  "message": "Nueva versión con chat grupal, historial de recorridos, modo viaje, compartir ubicación temporal y más.",
+  "url": "https://cercania.vercel.app/downloads/cercania-latest.apk"
 }

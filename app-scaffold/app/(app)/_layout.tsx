@@ -38,6 +38,10 @@ export default function AppLayout() {
       <Stack.Screen name="settings/trusted-contacts" />
       <Stack.Screen name="settings/invisible-mode" />
       <Stack.Screen name="settings/geofences" />
+      <Stack.Screen name="settings/travel-mode" />
+      <Stack.Screen name="settings/share-location" />
+      <Stack.Screen name="history" />
+      <Stack.Screen name="group/[id]/chat" />
       <Stack.Screen name="sos-active" options={{ gestureEnabled: false, presentation: 'fullScreenModal' }} />
     </Stack>
     </>

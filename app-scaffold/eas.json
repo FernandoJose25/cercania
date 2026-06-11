@@ -8,7 +8,7 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
-        "artifactPath": "android/app/build/outputs/apk/release/cercania-v0.1.0.apk"
+        "applicationArchivePath": "android/app/build/outputs/apk/release/cercania-v0.1.0.apk"
       },
       "distribution": "internal",
       "env": {
