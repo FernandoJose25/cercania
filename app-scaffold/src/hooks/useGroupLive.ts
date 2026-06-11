@@ -22,7 +22,7 @@ interface UseGroupLiveResult {
 
 export function useGroupLive(groupId: string | null): UseGroupLiveResult {
   const [snapshot, setSnapshot] = useState<GroupLiveSnapshot | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const memberIdsRef = useRef<Set<string>>(new Set());
@@ -37,12 +37,13 @@ export function useGroupLive(groupId: string | null): UseGroupLiveResult {
         p_group_id: groupId
       });
       if (rpcError) throw rpcError;
+      if (!data) throw new Error('El grupo no existe o no tienes acceso');
 
       const snap = data as GroupLiveSnapshot;
       setSnapshot(snap);
 
       // Guardar IDs de miembros para filtrar updates de realtime
-      memberIdsRef.current = new Set(snap.members.map(m => m.user_id));
+      memberIdsRef.current = new Set((snap.members ?? []).map(m => m.user_id));
     } catch (e: any) {
       setError(e.message ?? 'Error cargando el grupo');
     } finally {
