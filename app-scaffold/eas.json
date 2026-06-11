@@ -7,8 +7,7 @@
     "preview": {
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease",
-        "applicationArchivePath": "android/app/build/outputs/apk/release/cercania-v0.1.0.apk"
+        "gradleCommand": ":app:assembleRelease"
       },
       "distribution": "internal",
       "env": {
