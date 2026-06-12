@@ -16,7 +16,7 @@ import {
     StyleSheet, Text, TextInput, View
 } from 'react-native';
 import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Button } from '../../../src/components/ui/Button';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../../src/lib/theme';
 import { useAuth } from '../../../src/store/auth';
@@ -100,18 +100,22 @@ const gcStyles = StyleSheet.create({
 // ─── Pantalla principal ────────────────────────────────────
 export default function GeofencesScreen() {
     const { user } = useAuth();
+    // groupId y groupName pueden venir como parámetro desde el grupo
+    const params = useLocalSearchParams<{ groupId?: string; groupName?: string }>();
+    const paramGroupId = params.groupId ?? null;
+    const paramGroupName = params.groupName ?? null;
+
     const [zones, setZones] = useState<Geofence[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
 
-    // Estado del formulario
     const [name, setName] = useState('');
     const [icon, setIcon] = useState('🏠');
     const [radius, setRadius] = useState(200);
     const [saving, setSaving] = useState(false);
     const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
     const [loadingLocation, setLoadingLocation] = useState(false);
-    const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+    const [selectedGroupId, setSelectedGroupId] = useState<string | null>(paramGroupId);
     const [groups, setGroups] = useState<{ id: string; name: string; emoji: string }[]>([]);
     const mapRef = useRef<MapView>(null);
 
@@ -130,7 +134,8 @@ export default function GeofencesScreen() {
                     emoji: d.groups.emoji,
                 }));
                 setGroups(parsed);
-                if (parsed.length === 1) setSelectedGroupId(parsed[0].id);
+                // Si no viene groupId por parámetro y solo hay 1 grupo, auto-seleccionar
+                if (!paramGroupId && parsed.length === 1) setSelectedGroupId(parsed[0].id);
             }
         };
         loadGroups();
@@ -157,17 +162,20 @@ export default function GeofencesScreen() {
         setLoading(true);
         try {
             const sb = await getSupabase();
-            const { data, error } = await sb
-                .from('geofences')
-                .select('*')
-                .eq('created_by', user.id)
-                .order('created_at', { ascending: false });
+            // Si viene groupId por parámetro, mostrar zonas del grupo; si no, las del usuario
+            let query = sb.from('geofences').select('*').order('created_at', { ascending: false });
+            if (paramGroupId) {
+                query = query.eq('group_id', paramGroupId);
+            } else {
+                query = query.eq('created_by', user.id);
+            }
+            const { data, error } = await query;
             if (error) throw error;
             setZones(data ?? []);
         } catch (e: any) {
             Alert.alert('Error', e.message);
         } finally { setLoading(false); }
-    }, [user?.id]);
+    }, [user?.id, paramGroupId]);
 
     useEffect(() => { loadZones(); }, [loadZones]);
 
@@ -237,8 +245,10 @@ export default function GeofencesScreen() {
                     </Pressable>
                     <View style={styles.headerRow}>
                         <View>
-                            <Text style={styles.title}>Zonas seguras</Text>
-                            <Text style={styles.subtitle}>Tu grupo recibe alertas al entrar o salir</Text>
+                            <Text style={styles.title}>
+                            {paramGroupName ? `Zonas de ${paramGroupName}` : 'Zonas seguras'}
+                        </Text>
+                            <Text style={styles.subtitle}>El grupo recibe alertas al entrar o salir</Text>
                         </View>
                         <View style={styles.countBadge}>
                             <Text style={styles.countText}>{zones.length}</Text>
@@ -317,8 +327,8 @@ export default function GeofencesScreen() {
                         <Text style={styles.modalTitle}>Nueva zona segura</Text>
                         <Text style={styles.modalSub}>Se creará en tu ubicación actual</Text>
 
-                        {/* Grupo */}
-                        {groups.length > 1 && (
+                        {/* Grupo — solo mostrar selector si NO viene predefinido por parámetro */}
+                        {!paramGroupId && groups.length > 1 && (
                             <>
                                 <Text style={styles.inputLabel}>Grupo *</Text>
                                 <View style={styles.groupsRow}>

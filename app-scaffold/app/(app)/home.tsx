@@ -13,22 +13,47 @@ import { useTracking } from '../../src/store/tracking';
 import { useGroups } from '../../src/store/groups';
 import { useBatteryStatus } from '../../src/hooks/useBatteryStatus';
 import { getInitials } from '../../src/utils/format';
-import { activateSOS } from '../../src/services/sos.service';
+import { activateSOS, getActiveSOSAlerts } from '../../src/services/sos.service';
 import { scheduleDailySummary } from '../../src/services/daily-summary.service';
+import { getSupabase } from '../../src/lib/supabase';
 
 export default function HomeScreen() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { isTracking, permissions, initializing, enableTracking, disableTracking, init: initTracking } = useTracking();
   const { groups, loading: groupsLoading, loadGroups } = useGroups();
   const battery = useBatteryStatus();
   const [sosModalVisible, setSosModalVisible] = useState(false);
   const [sosLoading, setSosLoading] = useState(false);
+  const [myActiveSOS, setMyActiveSOS] = useState<{ alertId: string; groupId: string; groupName: string } | null>(null);
 
   useEffect(() => {
     initTracking();
     loadGroups();
     scheduleDailySummary().catch(() => {});
+    checkMyActiveSOS();
   }, []);
+
+  // Detecta si este usuario tiene una alerta SOS activa previa (ej: del build anterior)
+  const checkMyActiveSOS = async () => {
+    if (!user?.id) return;
+    try {
+      const sb = await getSupabase();
+      const { data } = await sb
+        .from('sos_alerts')
+        .select('id, group_id, groups(name)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .limit(1)
+        .single();
+      if (data) {
+        setMyActiveSOS({
+          alertId: data.id,
+          groupId: data.group_id,
+          groupName: (data.groups as any)?.name ?? 'Tu familia',
+        });
+      }
+    } catch { /* sin alerta activa */ }
+  };
 
   const handleToggle = async (value: boolean) => {
     if (value) {
@@ -113,6 +138,24 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* ── BANNER SOS ACTIVO PREVIO ── */}
+        {myActiveSOS && (
+          <Pressable
+            style={styles.sosActiveBanner}
+            onPress={() => router.push({
+              pathname: '/(app)/sos-active',
+              params: { alertId: myActiveSOS.alertId, groupId: myActiveSOS.groupId, groupName: myActiveSOS.groupName }
+            })}
+          >
+            <Text style={styles.sosActiveBannerIcon}>🆘</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.sosActiveBannerTitle}>Tienes un SOS activo</Text>
+              <Text style={styles.sosActiveBannerSub}>Toca aquí para cancelarlo si ya estás a salvo</Text>
+            </View>
+            <Text style={{ color: '#fff', fontSize: 22 }}>›</Text>
+          </Pressable>
+        )}
+
         {/* ── TRACKER ── */}
         <View style={[styles.trackerCard, isTracking && styles.trackerCardActive]}>
           <View style={styles.trackerLeft}>
@@ -187,7 +230,11 @@ export default function HomeScreen() {
             <Text style={styles.actionTitle}>Unirse</Text>
             <Text style={styles.actionSub}>Con código</Text>
           </Pressable>
-          <Pressable style={styles.actionCard} onPress={() => router.push('/(app)/settings/geofences')}>
+          <Pressable style={styles.actionCard} onPress={() => {
+            if (groups.length === 1) router.push({ pathname: '/(app)/settings/geofences', params: { groupId: groups[0].id, groupName: groups[0].name } });
+            else if (groups.length > 1) router.push('/(app)/group/create');
+            else Alert.alert('Sin grupos', 'Únete a un grupo primero para crear zonas seguras.');
+          }}>
             <View style={[styles.actionIcon, { backgroundColor: '#EFF6FF' }]}>
               <Text style={styles.actionEmoji}>📍</Text>
             </View>
@@ -287,6 +334,11 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, alignItems: 'center', ...Shadows.card },
   statNum: { fontSize: 18, fontWeight: '800', color: Colors.text },
   statLabel: { ...Typography.small, marginTop: 2, fontWeight: '600' },
+
+  sosActiveBanner: { marginHorizontal: Spacing.xl, marginTop: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: '#CC0000', borderRadius: Radius.xl, padding: Spacing.lg, ...Shadows.floating },
+  sosActiveBannerIcon: { fontSize: 28 },
+  sosActiveBannerTitle: { ...Typography.bodyBold, color: '#fff' },
+  sosActiveBannerSub: { ...Typography.caption, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
 
   trackerCard: { marginHorizontal: Spacing.xl, marginTop: Spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.lg, borderWidth: 1.5, borderColor: Colors.border, ...Shadows.card },
   trackerCardActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },

@@ -170,15 +170,27 @@ export default function MapScreen() {
         onPanDrag={() => setFollowing(false)}
       >
         {(snapshot?.geofences ?? []).map(gf => (
-          <Circle
-            key={gf.id}
-            center={{ latitude: gf.latitude, longitude: gf.longitude }}
-            radius={gf.radius_meters}
-            fillColor="rgba(245,158,11,0.1)"
-            strokeColor="rgba(245,158,11,0.6)"
-            strokeWidth={2}
-            zIndex={1}
-          />
+          <React.Fragment key={gf.id}>
+            <Circle
+              center={{ latitude: gf.latitude, longitude: gf.longitude }}
+              radius={gf.radius_meters}
+              fillColor="rgba(245,158,11,0.1)"
+              strokeColor="rgba(245,158,11,0.6)"
+              strokeWidth={2}
+              zIndex={1}
+            />
+            <Marker
+              coordinate={{ latitude: gf.latitude, longitude: gf.longitude }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              zIndex={2}
+              tracksViewChanges={false}
+            >
+              <View style={styles.geofenceLabel}>
+                <Text style={styles.geofenceLabelEmoji}>{gf.emoji ?? '📍'}</Text>
+                <Text style={styles.geofenceLabelText} numberOfLines={1}>{gf.name}</Text>
+              </View>
+            </Marker>
+          </React.Fragment>
         ))}
 
         {(snapshot?.members ?? [])
@@ -347,5 +359,14 @@ const styles = StyleSheet.create({
   chipInfo: { flex: 1 },
   chipName: { ...Typography.bodyBold, color: Colors.text, fontSize: 13 },
   chipStatus: { ...Typography.small, color: Colors.textSoft, marginTop: 1 },
-  chipSOS: { fontSize: 18 }
+  chipSOS: { fontSize: 18 },
+  geofenceLabel: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 10,
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1.5, borderColor: 'rgba(245,158,11,0.7)',
+    maxWidth: 130,
+  },
+  geofenceLabelEmoji: { fontSize: 14 },
+  geofenceLabelText: { fontSize: 11, fontWeight: '700', color: '#92400E', flexShrink: 1 },
 });

@@ -1,25 +1,7 @@
 // 📁 cercania/app-scaffold/app/(app)/sos-active.tsx
-/**
- * Pantalla de SOS activo.
- * Se muestra cuando el usuario ha activado una emergencia.
- *
- * Diseño de emergencia:
- * - Fondo rojo con pulso animado
- * - Ubicación en tiempo real
- * - Botón grande para cancelar
- * - Timer mostrando cuánto tiempo lleva activo
- * - Instrucciones claras para la persona en peligro
- */
-
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Easing,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-    Alert
+    Animated, Easing, Pressable, StyleSheet, Text, View, Alert
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { cancelSOS } from '../../src/services/sos.service';
@@ -29,23 +11,30 @@ export default function SOSActiveScreen() {
     const { alertId, groupName } = useLocalSearchParams<{ alertId: string; groupName: string }>();
     const [elapsed, setElapsed] = useState(0);
     const [cancelling, setCancelling] = useState(false);
-    const pulse = useRef(new Animated.Value(1)).current;
-    const timerRef = useRef<ReturnType<typeof setInterval>>();
 
-    // Pulso de fondo
+    // Animación solo en el ícono — NO en el contenedor entero para no bloquear toques
+    const pulse = useRef(new Animated.Value(1)).current;
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
-                Animated.timing(pulse, { toValue: 1.04, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-                Animated.timing(pulse, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true })
+                Animated.timing(pulse, { toValue: 1.15, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+                Animated.timing(pulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
             ])
         ).start();
-    }, [pulse]);
+    }, []);
 
-    // Timer
+    // Timer con ref para evitar múltiples instancias
     useEffect(() => {
+        if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
-        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+        };
     }, []);
 
     const formatTime = (s: number) => {
@@ -61,10 +50,10 @@ export default function SOSActiveScreen() {
             [
                 { text: 'Mantener SOS', style: 'cancel' },
                 {
-                    text: 'Cancelar SOS',
+                    text: 'Estoy a salvo',
                     style: 'destructive',
                     onPress: async () => {
-                        if (!alertId) return;
+                        if (!alertId) { router.replace('/(app)/home'); return; }
                         setCancelling(true);
                         try {
                             await cancelSOS(alertId);
@@ -80,11 +69,12 @@ export default function SOSActiveScreen() {
     };
 
     return (
-        <Animated.View style={[styles.container, { transform: [{ scale: pulse }] }]}>
-            {/* Icono */}
-            <Text style={styles.icon}>🆘</Text>
+        <View style={styles.container}>
+            {/* Ícono con pulso — solo el ícono, no el contenedor */}
+            <Animated.Text style={[styles.icon, { transform: [{ scale: pulse }] }]}>
+                🆘
+            </Animated.Text>
 
-            {/* Título */}
             <Text style={styles.title}>ALERTA SOS ACTIVA</Text>
             <Text style={styles.group}>Grupo: {groupName ?? 'Tu familia'}</Text>
 
@@ -96,15 +86,9 @@ export default function SOSActiveScreen() {
 
             {/* Info */}
             <View style={styles.infoBox}>
-                <Text style={styles.infoText}>
-                    ✅ Tu familia ha sido notificada
-                </Text>
-                <Text style={styles.infoText}>
-                    📍 Tu ubicación se está compartiendo
-                </Text>
-                <Text style={styles.infoText}>
-                    📞 Llama al 911 si es una emergencia grave
-                </Text>
+                <Text style={styles.infoText}>✅ Tu familia ha sido notificada</Text>
+                <Text style={styles.infoText}>📍 Tu ubicación se está compartiendo</Text>
+                <Text style={styles.infoText}>📞 Llama al 911 si es una emergencia grave</Text>
             </View>
 
             {/* Botón cancelar */}
@@ -121,7 +105,7 @@ export default function SOSActiveScreen() {
             <Text style={styles.hint}>
                 Mantén esta pantalla abierta mientras necesites ayuda
             </Text>
-        </Animated.View>
+        </View>
     );
 }
 
@@ -132,53 +116,28 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         padding: Spacing.xl,
-        gap: Spacing.lg
+        gap: Spacing.lg,
     },
     icon: { fontSize: 80 },
-    title: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: '#fff',
-        letterSpacing: 2,
-        textAlign: 'center'
-    },
-    group: {
-        fontSize: 16,
-        color: 'rgba(255,255,255,0.8)',
-        fontWeight: '600'
-    },
+    title: { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: 2, textAlign: 'center' },
+    group: { fontSize: 16, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
     timerBox: {
-        backgroundColor: 'rgba(0,0,0,0.2)',
-        borderRadius: 16,
-        paddingHorizontal: Spacing.xl,
-        paddingVertical: Spacing.md,
-        alignItems: 'center'
+        backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 16,
+        paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, alignItems: 'center',
     },
     timerLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
     timer: { color: '#fff', fontSize: 48, fontWeight: '800', letterSpacing: 4 },
     infoBox: {
-        backgroundColor: 'rgba(0,0,0,0.2)',
-        borderRadius: 16,
-        padding: Spacing.lg,
-        gap: Spacing.sm,
-        width: '100%'
+        backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 16,
+        padding: Spacing.lg, gap: Spacing.sm, width: '100%',
     },
     infoText: { color: '#fff', fontSize: 15, fontWeight: '500' },
     cancelBtn: {
-        backgroundColor: '#fff',
-        borderRadius: 50,
-        paddingHorizontal: Spacing.xl,
-        paddingVertical: Spacing.lg,
-        width: '100%',
-        alignItems: 'center',
-        marginTop: Spacing.md
+        backgroundColor: '#fff', borderRadius: 50,
+        paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg,
+        width: '100%', alignItems: 'center', marginTop: Spacing.md,
     },
     cancelBtnDisabled: { opacity: 0.6 },
     cancelText: { color: '#CC0000', fontSize: 16, fontWeight: '800' },
-    hint: {
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: 12,
-        textAlign: 'center',
-        marginTop: Spacing.sm
-    }
+    hint: { color: 'rgba(255,255,255,0.6)', fontSize: 12, textAlign: 'center', marginTop: Spacing.sm },
 });

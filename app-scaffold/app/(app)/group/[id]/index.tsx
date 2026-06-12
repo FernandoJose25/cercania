@@ -215,6 +215,19 @@ export default function GroupDetailScreen() {
                     <Text style={styles.mapBtnArrow}>›</Text>
                 </Pressable>
 
+                {/* Botón zonas seguras del grupo */}
+                <Pressable
+                    style={[styles.mapBtn, { marginTop: 8, borderColor: '#F59E0B', backgroundColor: '#FFFBEB' }]}
+                    onPress={() => router.push({ pathname: '/(app)/settings/geofences', params: { groupId: id, groupName: group.name } })}
+                >
+                    <Text style={styles.mapBtnIcon}>📍</Text>
+                    <View>
+                        <Text style={[styles.mapBtnTitle, { color: '#92400E' }]}>Zonas seguras del grupo</Text>
+                        <Text style={[styles.mapBtnSub, { color: '#B45309' }]}>Casa, colegio, trabajo...</Text>
+                    </View>
+                    <Text style={[styles.mapBtnArrow, { color: '#F59E0B' }]}>›</Text>
+                </Pressable>
+
                 {/* Botón invitar */}
                 <Pressable
                     style={[styles.mapBtn, { marginTop: 0, marginBottom: Spacing.xl, borderColor: '#8B5CF6', backgroundColor: '#F5F3FF' }]}
