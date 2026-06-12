@@ -60,6 +60,11 @@ export default function RootLayout() {
             pathname: '/(app)/map/[groupId]',
             params: { groupId: data.groupId }
           });
+        } else if (data?.type === 'chat' && data?.groupId) {
+          router.push({
+            pathname: '/(app)/group/[id]/chat',
+            params: { id: data.groupId }
+          });
         } else if (data?.type === 'trusted_contact_invite') {
           router.push('/(app)/settings/trusted-contacts');
         } else if (data?.type === 'recovery') {

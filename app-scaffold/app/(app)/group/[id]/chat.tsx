@@ -8,6 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../../../src/lib/theme';
 import { getSupabase } from '../../../../src/lib/supabase';
 import { useAuth } from '../../../../src/store/auth';
+import { notifyChatMessage } from '../../../../src/services/notifications.service';
 
 interface ChatMessage {
   id: string;
@@ -150,6 +151,13 @@ export default function GroupChatScreen() {
         longitude: null,
       });
       setText('');
+      // Notificar a los demás miembros del grupo
+      notifyChatMessage(
+        groupId as string,
+        profile?.display_name ?? 'Alguien',
+        user.id,
+        content.trim()
+      ).catch(() => {});
     } catch (e: any) {
       console.warn('[Chat]', e.message);
     } finally {
@@ -179,6 +187,12 @@ export default function GroupChatScreen() {
         latitude: loc.latitude,
         longitude: loc.longitude,
       });
+      notifyChatMessage(
+        groupId as string,
+        profile?.display_name ?? 'Alguien',
+        user!.id,
+        content
+      ).catch(() => {});
     } catch (e: any) {
       await sendMessage('📍 Compartió su ubicación');
     } finally {
