@@ -10,11 +10,12 @@
  * 3. La zona se crea centrada en la ubicación actual del usuario.
  * 4. Para cambiar la posición exacta, el usuario debe ir al mapa del grupo.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator, Alert, Modal, Pressable, ScrollView,
     StyleSheet, Text, TextInput, View
 } from 'react-native';
+import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { router } from 'expo-router';
 import { Button } from '../../../src/components/ui/Button';
 import { Colors, Radius, Shadows, Spacing, Typography } from '../../../src/lib/theme';
@@ -108,6 +109,25 @@ export default function GeofencesScreen() {
     const [icon, setIcon] = useState('🏠');
     const [radius, setRadius] = useState(200);
     const [saving, setSaving] = useState(false);
+    const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+    const [loadingLocation, setLoadingLocation] = useState(false);
+    const mapRef = useRef<MapView>(null);
+
+    const fetchCurrentLocation = async () => {
+        setLoadingLocation(true);
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') throw new Error('Permiso de ubicación denegado');
+            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const c = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+            setCoords(c);
+            mapRef.current?.animateToRegion({ ...c, latitudeDelta: 0.003, longitudeDelta: 0.003 }, 500);
+        } catch (e: any) {
+            Alert.alert('Error', e.message);
+        } finally {
+            setLoadingLocation(false);
+        }
+    };
 
     const loadZones = useCallback(async () => {
         if (!user?.id) return;
@@ -130,21 +150,28 @@ export default function GeofencesScreen() {
 
     const handleCreate = async () => {
         if (!name.trim()) { Alert.alert('Escribe un nombre para la zona'); return; }
+        if (!coords) { Alert.alert('Selecciona la ubicación', 'Toca "Usar mi ubicación actual" primero.'); return; }
         setSaving(true);
         try {
-            // Obtener ubicación actual para centrar la zona
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') throw new Error('Necesitas permitir la ubicación para crear una zona');
-
-            const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-
             const sb = await getSupabase();
+
+            // Obtener el primer grupo del usuario para asignar la zona
+            const { data: membership } = await sb
+                .from('group_members')
+                .select('group_id')
+                .eq('user_id', user!.id)
+                .limit(1)
+                .single();
+
+            if (!membership?.group_id) throw new Error('Necesitas pertenecer a un grupo para crear zonas seguras');
+
             const { error } = await sb.from('geofences').insert({
                 created_by: user!.id,
+                group_id: membership.group_id,
                 name: name.trim(),
                 emoji: icon,
-                latitude: loc.coords.latitude,
-                longitude: loc.coords.longitude,
+                latitude: coords.latitude,
+                longitude: coords.longitude,
                 radius_meters: radius,
                 notify_on_enter: true,
                 notify_on_exit: true,
@@ -319,17 +346,52 @@ export default function GeofencesScreen() {
                             ))}
                         </View>
 
-                        {/* Preview */}
-                        <View style={styles.previewCard}>
-                            <Text style={styles.previewIcon}>{icon}</Text>
-                            <Text style={styles.previewName}>{name || 'Nombre de la zona'}</Text>
-                            <Text style={styles.previewRadius}>
-                                Radio: {radius >= 1000 ? `${radius / 1000} km` : `${radius} m`}
+                        {/* Ubicación */}
+                        <Text style={styles.inputLabel}>Ubicación de la zona</Text>
+                        <Pressable style={styles.locationBtn} onPress={fetchCurrentLocation} disabled={loadingLocation}>
+                            {loadingLocation
+                                ? <ActivityIndicator size="small" color={Colors.primary} />
+                                : <Text style={{ fontSize: 16 }}>📍</Text>
+                            }
+                            <Text style={styles.locationBtnText}>
+                                {loadingLocation ? 'Obteniendo ubicación...' : coords ? 'Actualizar ubicación' : 'Usar mi ubicación actual'}
                             </Text>
-                        </View>
+                        </Pressable>
+
+                        {coords && (
+                            <View style={styles.mapWrap}>
+                                <MapView
+                                    ref={mapRef}
+                                    style={styles.map}
+                                    provider={PROVIDER_GOOGLE}
+                                    mapType="hybrid"
+                                    initialRegion={{
+                                        ...coords,
+                                        latitudeDelta: 0.003,
+                                        longitudeDelta: 0.003,
+                                    }}
+                                    onPress={(e) => setCoords(e.nativeEvent.coordinate)}
+                                >
+                                    <Marker
+                                        coordinate={coords}
+                                        draggable
+                                        onDragEnd={(e) => setCoords(e.nativeEvent.coordinate)}
+                                        title={name || 'Zona'}
+                                    />
+                                    <Circle
+                                        center={coords}
+                                        radius={radius}
+                                        fillColor="rgba(245,158,11,0.15)"
+                                        strokeColor="#F59E0B"
+                                        strokeWidth={2}
+                                    />
+                                </MapView>
+                                <Text style={styles.mapHint}>Toca o arrastra el pin para ajustar la posición</Text>
+                            </View>
+                        )}
 
                         <Button title="Crear zona" variant="primary" fullWidth loading={saving} onPress={handleCreate} style={{ marginTop: Spacing.lg }} />
-                        <Button title="Cancelar" variant="ghost" fullWidth onPress={() => { setModalVisible(false); setName(''); }} style={{ marginTop: Spacing.sm }} />
+                        <Button title="Cancelar" variant="ghost" fullWidth onPress={() => { setModalVisible(false); setName(''); setCoords(null); }} style={{ marginTop: Spacing.sm }} />
                     </View>
                 </View>
             </Modal>
@@ -395,4 +457,15 @@ const styles = StyleSheet.create({
     previewIcon: { fontSize: 32, marginBottom: 4 },
     previewName: { ...Typography.bodyBold, color: Colors.text },
     previewRadius: { ...Typography.caption, color: Colors.primaryDark, marginTop: 2 },
+
+    locationBtn: {
+        flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+        backgroundColor: Colors.primaryLight, borderRadius: Radius.lg,
+        padding: Spacing.md, borderWidth: 1.5, borderColor: Colors.primary,
+        marginTop: Spacing.xs,
+    },
+    locationBtnText: { ...Typography.bodyBold, color: Colors.primaryDark },
+    mapWrap: { marginTop: Spacing.md, borderRadius: Radius.lg, overflow: 'hidden', borderWidth: 1.5, borderColor: Colors.border },
+    map: { width: '100%', height: 200 },
+    mapHint: { ...Typography.caption, color: Colors.textMuted, textAlign: 'center', paddingVertical: 6, backgroundColor: Colors.surfaceAlt },
 });
