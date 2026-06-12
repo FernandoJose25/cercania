@@ -71,34 +71,40 @@ export async function activateSOSWithVideo(
         .eq('id', user.id)
         .single();
 
-    // Subir video en paralelo con la creación de la alerta
-    const [videoUrl, alertResult] = await Promise.all([
-        uploadSOSVideo(videoUri, user.id),
-        sb.rpc('create_sos_alert', {
-            p_group_id: groupId,
-            p_lat: location.coords.latitude,
-            p_lng: location.coords.longitude,
-            p_message: '¡Necesito ayuda!'
-        })
-    ]);
+    // 1. Crear la alerta inmediatamente (sin esperar el video)
+    const alertResult = await sb.rpc('create_sos_alert', {
+        p_group_id: groupId,
+        p_lat: location.coords.latitude,
+        p_lng: location.coords.longitude,
+        p_message: '¡Necesito ayuda!'
+    });
 
     if (alertResult.error) throw alertResult.error;
 
     const alertId = (alertResult.data as { alert_id: string }).alert_id;
-
-    // Si tenemos video, actualizar la alerta con la URL
-    if (videoUrl && alertId) {
-        await sb.from('sos_alerts')
-            .update({ video_url: videoUrl })
-            .eq('id', alertId);
-    }
-
-    // Notificar al grupo con la info del video
     const userName = profile?.display_name?.split(' ')[0] ?? 'Un familiar';
-    await notifySOSAlert(groupId, userName, {
+
+    // 2. Notificar al grupo de inmediato (sin video aún)
+    notifySOSAlert(groupId, userName, {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-    }, alertId, videoUrl).catch(console.warn);
+    }, alertId, null).catch(console.warn);
+
+    // 3. Subir el video en background y actualizar la alerta cuando esté listo
+    uploadSOSVideo(videoUri, user.id).then(videoUrl => {
+        if (videoUrl && alertId) {
+            sb.from('sos_alerts')
+                .update({ video_url: videoUrl })
+                .eq('id', alertId)
+                .then(() => {
+                    // Segunda notificación con el video disponible
+                    notifySOSAlert(groupId, userName, {
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                    }, alertId, videoUrl).catch(() => {});
+                });
+        }
+    }).catch(() => {});
 
     return { alert_id: alertId };
 }
