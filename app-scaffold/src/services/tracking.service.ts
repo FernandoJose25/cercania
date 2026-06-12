@@ -18,9 +18,9 @@ const LOW_BATTERY = 15;
 const SAVER_BG_INTERVAL_MS = 10 * 60 * 1000;
 
 // Filtros duros (antes del Kalman)
-const MAX_ACCURACY_M = 15;     // Rechazar lecturas con error > 15m (antes 25m)
+const MAX_ACCURACY_M = 35;     // Aceptar hasta 35m de error (15 era muy estricto bajo techo)
 const MAX_SPEED_MPS = 55;      // Rechazar velocidades > 55 m/s (~200 km/h)
-const MIN_MOVEMENT_M = 8;      // Ignorar movimientos < 8m si speed ≈ 0 (antes 3m)
+const MIN_MOVEMENT_M = 8;      // Ignorar movimientos < 8m si speed ≈ 0
 
 let _lastLat: number | null = null;
 let _lastLng: number | null = null;

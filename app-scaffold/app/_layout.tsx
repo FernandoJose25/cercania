@@ -15,6 +15,7 @@ import { useAppUpdate } from '../src/hooks/useAppUpdate';
 import { UpdateModal } from '../src/components/ui/UpdateModal';
 import { useSOSAlert } from '../src/hooks/useSOSAlert';
 import { SOSAlertModal } from '../src/components/sos/SOSAlertModal';
+import { ShortNameModal } from '../src/components/ui/ShortNameModal';
 
 SplashScreen.preventAutoHideAsync().catch(() => { });
 
@@ -31,6 +32,10 @@ export default function RootLayout() {
   const notifTokenRegistered = useRef(false);
   const { updateAvailable, updateInfo, dismiss } = useAppUpdate();
   const { activeAlert, clearAlert } = useSOSAlert();
+
+  // Nombre largo detectado (ej: email de Gmail como display_name)
+  const displayName = profile?.display_name?.trim() ?? '';
+  const needsShortName = !!session && profile !== null && (displayName.length === 0 || displayName.length > 20);
 
   // Inicializar auth
   useEffect(() => {
@@ -103,15 +108,11 @@ export default function RootLayout() {
     const inAuthGroup = segments[0] === '(auth)';
     const inAppGroup = segments[0] === '(app)';
     const onGate = segments[0] === 'biometric-gate';
-    const onCompleteProfile = inAuthGroup && segments[1] === 'complete-profile';
 
     if (!session) {
       if (!inAuthGroup) router.replace('/(auth)/welcome');
     } else if (biometricGateOpen) {
       if (!onGate) router.replace('/biometric-gate');
-    } else if (session && profile !== null && (!profile?.display_name?.trim() || profile.display_name.trim().length > 20)) {
-      // Perfil sin nombre o nombre demasiado largo (ej: email de Gmail): pedir nombre corto
-      if (!onCompleteProfile) router.replace('/(auth)/complete-profile');
     } else {
       if (!inAppGroup) router.replace('/(app)/home');
     }
@@ -134,6 +135,10 @@ export default function RootLayout() {
           onDismiss={clearAlert}
         />
       )}
+      <ShortNameModal
+        visible={needsShortName}
+        existingName={displayName}
+      />
       <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
