@@ -9,7 +9,7 @@ import {
   View
 } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
-import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { AnimatedRegion, Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useGroupLive } from '../../../src/hooks/useGroupLive';
 import { useAuth } from '../../../src/store/auth';
 import { Colors, Radius, Shadows, Spacing, Typography, Tracking } from '../../../src/lib/theme';
@@ -30,6 +30,8 @@ export default function MapScreen() {
   const [mapError, setMapError] = useState(false);
   const [following, setFollowing] = useState(true);
   const mapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // AnimatedRegion por cada miembro — para animación suave del pin
+  const animatedCoords = useRef<Record<string, AnimatedRegion>>({}).current;
 
   useFocusEffect(
     useCallback(() => {
@@ -52,6 +54,31 @@ export default function MapScreen() {
       setTimeout(() => fitToMembers(), 600);
     }
   }, [mapReady, snapshot?.members?.length]);
+
+  // Animar pins suavemente cuando cambia la posición de cada miembro
+  useEffect(() => {
+    (snapshot?.members ?? []).forEach(m => {
+      if (!m.location || m.is_invisible) return;
+      const { latitude, longitude } = m.location;
+      if (!animatedCoords[m.user_id]) {
+        animatedCoords[m.user_id] = new AnimatedRegion({
+          latitude,
+          longitude,
+          latitudeDelta: 0,
+          longitudeDelta: 0,
+        });
+      } else {
+        animatedCoords[m.user_id].timing({
+          latitude,
+          longitude,
+          latitudeDelta: 0,
+          longitudeDelta: 0,
+          duration: 1000,
+          useNativeDriver: false,
+        }).start();
+      }
+    });
+  }, [snapshot?.members]);
 
   // Seguir mi ubicación en tiempo real mientras following=true
   const myLocation = (snapshot?.members ?? []).find(m => m.user_id === currentUserId)?.location;
@@ -165,10 +192,15 @@ export default function MapScreen() {
             const isSelected = m.user_id === selectedMemberId;
             const pinColor = hasSOS ? Colors.danger : isMe ? Colors.primary : isStale ? Colors.mapStale : Colors.accent;
 
+            const coord = animatedCoords[m.user_id] ?? {
+              latitude: m.location.latitude,
+              longitude: m.location.longitude,
+            };
+
             return (
-              <Marker
+              <Marker.Animated
                 key={m.user_id}
-                coordinate={{ latitude: m.location.latitude, longitude: m.location.longitude }}
+                coordinate={coord}
                 onPress={() => setSelectedMemberId(m.user_id)}
                 zIndex={isMe ? 10 : isSelected ? 9 : 5}
                 tracksViewChanges={false}
@@ -201,7 +233,7 @@ export default function MapScreen() {
                     <Text style={styles.staleText}>{lastSeenShort(m.location.updated_at)}</Text>
                   )}
                 </View>
-              </Marker>
+              </Marker.Animated>
             );
           })}
       </MapView>
