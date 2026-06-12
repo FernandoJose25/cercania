@@ -10,9 +10,11 @@ import { useAuth } from '../../src/store/auth';
 import { getSupabase } from '../../src/lib/supabase';
 
 export default function CompleteProfileScreen() {
-  const { user, refreshProfile } = useAuth();
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const { user, profile, refreshProfile } = useAuth();
+  const existingName = profile?.display_name ?? '';
+  const isTooLong = existingName.length > 20;
+  const [name, setName] = useState(isTooLong ? existingName : '');
+  const [phone, setPhone] = useState(profile?.phone ?? '');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -54,24 +56,30 @@ export default function CompleteProfileScreen() {
           <Text style={styles.icon}>👤</Text>
         </View>
 
-        <Text style={styles.title}>Completa tu perfil</Text>
+        <Text style={styles.title}>
+          {isTooLong ? 'Elige un nombre corto' : 'Completa tu perfil'}
+        </Text>
         <Text style={styles.subtitle}>
-          Para que tu familia pueda reconocerte en el mapa, necesitamos tu nombre.
+          {isTooLong
+            ? `"${existingName}" es muy largo para mostrarse en el mapa. Elige un nombre corto (máx. 20 caracteres).`
+            : 'Para que tu familia pueda reconocerte en el mapa, necesitamos tu nombre.'}
         </Text>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Nombre visible *</Text>
+          <Text style={styles.label}>Nombre visible * (máx. 20 caracteres)</Text>
           <TextInput
             style={styles.input}
             value={name}
-            onChangeText={setName}
-            placeholder="¿Cómo quieres que te vean?"
+            onChangeText={t => setName(t.slice(0, 20))}
+            placeholder="Ej: Mamá, Fernando, Sofia..."
             placeholderTextColor={Colors.textMuted}
-            maxLength={50}
+            maxLength={20}
             autoFocus
             returnKeyType="next"
           />
-          <Text style={styles.hint}>Este nombre aparecerá en el mapa para tu grupo familiar.</Text>
+          <Text style={[styles.hint, name.length >= 18 && { color: Colors.danger }]}>
+            {name.length}/20 · Aparecerá en el mapa y en el ícono de perfil.
+          </Text>
 
           <Text style={[styles.label, { marginTop: Spacing.lg }]}>Teléfono (opcional)</Text>
           <TextInput
