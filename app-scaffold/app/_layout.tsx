@@ -104,8 +104,8 @@ export default function RootLayout() {
       if (!inAuthGroup) router.replace('/(auth)/welcome');
     } else if (biometricGateOpen) {
       if (!onGate) router.replace('/biometric-gate');
-    } else if (session && profile !== null && !profile?.display_name?.trim()) {
-      // Perfil sin nombre: pedir antes de entrar a la app
+    } else if (session && profile !== null && (!profile?.display_name?.trim() || profile.display_name.trim().length > 20)) {
+      // Perfil sin nombre o nombre demasiado largo (ej: email de Gmail): pedir nombre corto
       if (!onCompleteProfile) router.replace('/(auth)/complete-profile');
     } else {
       if (!inAppGroup) router.replace('/(app)/home');
