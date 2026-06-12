@@ -21,7 +21,7 @@ export class KalmanFilter {
     // Q: ruido del proceso (qué tan rápido puede cambiar la posición real)
     // Valor bajo = más suave pero más lento en detectar movimiento real
     // Valor alto = más reactivo pero más ruidoso
-    private readonly Q_METERS_PER_SECOND = 3; // 3 m/s de movimiento máximo esperado
+    private readonly Q_METERS_PER_SECOND = 1; // 1 m/s — más suave, menos rebote (antes 3)
 
     reset(): void {
         this.variance = -1;
