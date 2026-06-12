@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { activateSOSWithVideo } from '../../src/services/sos.service';
+import { activateSOSWithVideo, cancelSOS } from '../../src/services/sos.service';
 
 const COUNTDOWN = 3;
 const RECORD_SECONDS = 10;
@@ -19,6 +19,8 @@ export default function SOSRecordScreen() {
   const [phase, setPhase] = useState<'countdown' | 'recording' | 'activating' | 'done'>('countdown');
   const [countdown, setCountdown] = useState(COUNTDOWN);
   const [recordProgress, setRecordProgress] = useState(0);
+  const [alertId, setAlertId] = useState<string | null>(null);
+  const [cancellingSOS, setCancellingSOS] = useState(false);
 
   const cameraRef = useRef<CameraView>(null);
   const cancelledRef = useRef(false);
@@ -81,6 +83,8 @@ export default function SOSRecordScreen() {
         // Fase: activando SOS (crea alerta + notifica push inmediatamente)
         setPhase('activating');
         const result = await activateSOSWithVideo(groupId!, video.uri, groupName ?? 'Tu familia');
+        // Guardar alertId para que el botón "Estoy a salvo" pueda cancelar ya
+        setAlertId(result.alert_id);
         setPhase('done');
 
         // Navegar a pantalla de SOS activo con el alertId para poder cancelarlo
@@ -108,6 +112,21 @@ export default function SOSRecordScreen() {
       }
     };
   }, [phase]);
+
+  const handleEstoyASalvo = async () => {
+    if (!alertId || cancellingSOS) return;
+    setCancellingSOS(true);
+    try {
+      await cancelSOS(alertId);
+      router.replace('/(app)/home');
+    } catch {
+      // Si falla, igual navegar a home — la alerta se puede cancelar desde sos-active
+      router.replace({
+        pathname: '/(app)/sos-active',
+        params: { groupId, groupName, alertId }
+      });
+    }
+  };
 
   const activarSinVideo = async () => {
     try {
@@ -183,9 +202,20 @@ export default function SOSRecordScreen() {
         {phase === 'activating' && (
           <View style={styles.recordingWrap}>
             <Text style={styles.uploadIcon}>🆘</Text>
-            <Text style={styles.recLabel}>Activando SOS...</Text>
+            <Text style={styles.recLabel}>Enviando reporte...</Text>
             <Text style={styles.recSub}>Notificando a tu familia ahora</Text>
             <Text style={styles.recInfo}>El video se sube en segundo plano</Text>
+            {alertId && (
+              <Pressable
+                style={[styles.safeBtn, cancellingSOS && { opacity: 0.6 }]}
+                onPress={handleEstoyASalvo}
+                disabled={cancellingSOS}
+              >
+                <Text style={styles.safeBtnText}>
+                  {cancellingSOS ? 'Cancelando...' : '✅ Estoy a salvo — Fue falsa alarma'}
+                </Text>
+              </Pressable>
+            )}
           </View>
         )}
       </View>
@@ -219,4 +249,6 @@ const styles = StyleSheet.create({
   progressBar: { width: '100%', height: 8, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 4 },
   uploadIcon: { fontSize: 48 },
+  safeBtn: { marginTop: 12, backgroundColor: '#fff', borderRadius: 50, paddingHorizontal: 28, paddingVertical: 14, alignItems: 'center' },
+  safeBtnText: { color: '#CC0000', fontWeight: '800', fontSize: 15 },
 });
