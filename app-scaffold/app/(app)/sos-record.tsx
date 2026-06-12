@@ -16,10 +16,9 @@ export default function SOSRecordScreen() {
   const [camPerm, requestCam] = useCameraPermissions();
   const [micPerm, requestMic] = useMicrophonePermissions();
 
-  const [phase, setPhase] = useState<'countdown' | 'recording' | 'uploading' | 'done'>('countdown');
+  const [phase, setPhase] = useState<'countdown' | 'recording' | 'activating' | 'done'>('countdown');
   const [countdown, setCountdown] = useState(COUNTDOWN);
   const [recordProgress, setRecordProgress] = useState(0);
-  const [cancelled, setCancelled] = useState(false);
 
   const cameraRef = useRef<CameraView>(null);
   const cancelledRef = useRef(false);
@@ -79,18 +78,23 @@ export default function SOSRecordScreen() {
           return;
         }
 
-        setPhase('uploading');
-        await activateSOSWithVideo(groupId!, video.uri, groupName ?? 'Tu familia');
+        // Fase: activando SOS (crea alerta + notifica push inmediatamente)
+        setPhase('activating');
+        const result = await activateSOSWithVideo(groupId!, video.uri, groupName ?? 'Tu familia');
         setPhase('done');
+
+        // Navegar a pantalla de SOS activo con el alertId para poder cancelarlo
         router.replace({
           pathname: '/(app)/sos-active',
-          params: { groupId, groupName }
+          params: { groupId, groupName, alertId: result.alert_id }
         });
       } catch (e: any) {
         clearInterval(progressInterval);
         if (!cancelledRef.current) {
-          Alert.alert('Error', e.message);
-          router.replace('/(app)/home');
+          Alert.alert('Error al activar SOS', e.message, [
+            { text: 'Intentar sin video', onPress: () => activarSinVideo() },
+            { text: 'Cancelar', style: 'cancel', onPress: () => router.replace('/(app)/home') }
+          ]);
         }
       }
     };
@@ -105,9 +109,22 @@ export default function SOSRecordScreen() {
     };
   }, [phase]);
 
+  const activarSinVideo = async () => {
+    try {
+      const { activateSOS } = await import('../../src/services/sos.service');
+      const result = await activateSOS(groupId!, '¡Necesito ayuda!');
+      router.replace({
+        pathname: '/(app)/sos-active',
+        params: { groupId, groupName, alertId: result.alert_id }
+      });
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+      router.replace('/(app)/home');
+    }
+  };
+
   const handleCancel = () => {
     cancelledRef.current = true;
-    setCancelled(true);
     if (phase === 'recording' && cameraRef.current) {
       cameraRef.current.stopRecording();
     }
@@ -130,10 +147,11 @@ export default function SOSRecordScreen() {
 
   return (
     <View style={styles.root}>
+      {/* Cámara trasera para capturar el entorno/amenaza */}
       <CameraView
         ref={cameraRef}
         style={styles.camera}
-        facing="front"
+        facing="back"
         mode="video"
       />
 
@@ -143,6 +161,7 @@ export default function SOSRecordScreen() {
           <Animated.View style={[styles.countdownWrap, { transform: [{ scale: pulse }] }]}>
             <Text style={styles.countdownNum}>{countdown}</Text>
             <Text style={styles.countdownLabel}>Grabando en...</Text>
+            <Text style={styles.countdownInfo}>Se grabará el entorno como evidencia</Text>
             <Pressable style={styles.cancelBtn} onPress={handleCancel}>
               <Text style={styles.cancelText}>Cancelar SOS</Text>
             </Pressable>
@@ -154,18 +173,19 @@ export default function SOSRecordScreen() {
             <View style={styles.recDot} />
             <Text style={styles.recLabel}>Grabando evidencia...</Text>
             <View style={styles.progressBar}>
-              <Animated.View style={[styles.progressFill, { width: `${recordProgress * 100}%` }]} />
+              <View style={[styles.progressFill, { width: `${recordProgress * 100}%` }]} />
             </View>
             <Text style={styles.recSub}>{Math.round(recordProgress * RECORD_SECONDS)}s / {RECORD_SECONDS}s</Text>
-            <Text style={styles.recInfo}>Video siendo enviado a tu grupo</Text>
+            <Text style={styles.recInfo}>Tu familia recibirá la alerta de inmediato</Text>
           </View>
         )}
 
-        {phase === 'uploading' && (
+        {phase === 'activating' && (
           <View style={styles.recordingWrap}>
-            <Text style={styles.uploadIcon}>📤</Text>
-            <Text style={styles.recLabel}>Enviando alerta...</Text>
-            <Text style={styles.recSub}>Notificando a tu familia</Text>
+            <Text style={styles.uploadIcon}>🆘</Text>
+            <Text style={styles.recLabel}>Activando SOS...</Text>
+            <Text style={styles.recSub}>Notificando a tu familia ahora</Text>
+            <Text style={styles.recInfo}>El video se sube en segundo plano</Text>
           </View>
         )}
       </View>
@@ -188,6 +208,7 @@ const styles = StyleSheet.create({
   countdownWrap: { alignItems: 'center', gap: 12 },
   countdownNum: { fontSize: 120, fontWeight: '900', color: '#fff', lineHeight: 130 },
   countdownLabel: { fontSize: 20, color: 'rgba(255,255,255,0.9)', fontWeight: '700' },
+  countdownInfo: { fontSize: 13, color: 'rgba(255,255,255,0.65)', textAlign: 'center', marginTop: -4 },
   cancelBtn: { marginTop: 24, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 50, paddingHorizontal: 32, paddingVertical: 14, borderWidth: 2, borderColor: '#fff' },
   cancelText: { color: '#fff', fontWeight: '800', fontSize: 16 },
   recordingWrap: { alignItems: 'center', gap: 16, width: '80%' },
