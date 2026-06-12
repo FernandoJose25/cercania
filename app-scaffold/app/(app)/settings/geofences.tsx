@@ -111,7 +111,30 @@ export default function GeofencesScreen() {
     const [saving, setSaving] = useState(false);
     const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
     const [loadingLocation, setLoadingLocation] = useState(false);
+    const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+    const [groups, setGroups] = useState<{ id: string; name: string; emoji: string }[]>([]);
     const mapRef = useRef<MapView>(null);
+
+    useEffect(() => {
+        const loadGroups = async () => {
+            if (!user?.id) return;
+            const sb = await getSupabase();
+            const { data } = await sb
+                .from('group_members')
+                .select('group_id, groups(id, name, emoji)')
+                .eq('user_id', user.id);
+            if (data) {
+                const parsed = data.map((d: any) => ({
+                    id: d.groups.id,
+                    name: d.groups.name,
+                    emoji: d.groups.emoji,
+                }));
+                setGroups(parsed);
+                if (parsed.length === 1) setSelectedGroupId(parsed[0].id);
+            }
+        };
+        loadGroups();
+    }, [user?.id]);
 
     const fetchCurrentLocation = async () => {
         setLoadingLocation(true);
@@ -150,24 +173,14 @@ export default function GeofencesScreen() {
 
     const handleCreate = async () => {
         if (!name.trim()) { Alert.alert('Escribe un nombre para la zona'); return; }
+        if (!selectedGroupId) { Alert.alert('Selecciona un grupo', 'Elige a qué grupo pertenece esta zona.'); return; }
         if (!coords) { Alert.alert('Selecciona la ubicación', 'Toca "Usar mi ubicación actual" primero.'); return; }
         setSaving(true);
         try {
             const sb = await getSupabase();
-
-            // Obtener el primer grupo del usuario para asignar la zona
-            const { data: membership } = await sb
-                .from('group_members')
-                .select('group_id')
-                .eq('user_id', user!.id)
-                .limit(1)
-                .single();
-
-            if (!membership?.group_id) throw new Error('Necesitas pertenecer a un grupo para crear zonas seguras');
-
             const { error } = await sb.from('geofences').insert({
                 created_by: user!.id,
-                group_id: membership.group_id,
+                group_id: selectedGroupId,
                 name: name.trim(),
                 emoji: icon,
                 latitude: coords.latitude,
@@ -304,6 +317,27 @@ export default function GeofencesScreen() {
                         <Text style={styles.modalTitle}>Nueva zona segura</Text>
                         <Text style={styles.modalSub}>Se creará en tu ubicación actual</Text>
 
+                        {/* Grupo */}
+                        {groups.length > 1 && (
+                            <>
+                                <Text style={styles.inputLabel}>Grupo *</Text>
+                                <View style={styles.groupsRow}>
+                                    {groups.map(g => (
+                                        <Pressable
+                                            key={g.id}
+                                            style={[styles.groupOption, selectedGroupId === g.id && styles.groupOptionSelected]}
+                                            onPress={() => setSelectedGroupId(g.id)}
+                                        >
+                                            <Text style={{ fontSize: 20 }}>{g.emoji}</Text>
+                                            <Text style={[styles.groupOptionText, selectedGroupId === g.id && styles.groupOptionTextSelected]}>
+                                                {g.name}
+                                            </Text>
+                                        </Pressable>
+                                    ))}
+                                </View>
+                            </>
+                        )}
+
                         {/* Nombre */}
                         <Text style={styles.inputLabel}>Nombre *</Text>
                         <TextInput
@@ -391,7 +425,7 @@ export default function GeofencesScreen() {
                         )}
 
                         <Button title="Crear zona" variant="primary" fullWidth loading={saving} onPress={handleCreate} style={{ marginTop: Spacing.lg }} />
-                        <Button title="Cancelar" variant="ghost" fullWidth onPress={() => { setModalVisible(false); setName(''); setCoords(null); }} style={{ marginTop: Spacing.sm }} />
+                        <Button title="Cancelar" variant="ghost" fullWidth onPress={() => { setModalVisible(false); setName(''); setCoords(null); if (groups.length > 1) setSelectedGroupId(null); }} style={{ marginTop: Spacing.sm }} />
                     </View>
                 </View>
             </Modal>
@@ -468,4 +502,10 @@ const styles = StyleSheet.create({
     mapWrap: { marginTop: Spacing.md, borderRadius: Radius.lg, overflow: 'hidden', borderWidth: 1.5, borderColor: Colors.border },
     map: { width: '100%', height: 200 },
     mapHint: { ...Typography.caption, color: Colors.textMuted, textAlign: 'center', paddingVertical: 6, backgroundColor: Colors.surfaceAlt },
+
+    groupsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginTop: Spacing.xs },
+    groupOption: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: Radius.lg, backgroundColor: Colors.surfaceAlt, borderWidth: 1.5, borderColor: 'transparent' },
+    groupOptionSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+    groupOptionText: { ...Typography.bodyBold, color: Colors.textSoft },
+    groupOptionTextSelected: { color: Colors.primaryDark },
 });
