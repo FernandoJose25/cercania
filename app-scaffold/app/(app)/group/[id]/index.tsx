@@ -101,42 +101,32 @@ export default function GroupDetailScreen() {
         setLoadingCode(true);
         try {
             const sb = await getSupabase();
-            // Buscar código activo existente
-            const { data } = await sb
+            // Buscar el código más reciente del grupo — el mismo que se mostró al crear
+            const { data, error } = await sb
                 .from('invite_codes')
                 .select('code')
                 .eq('group_id', id)
-                .eq('is_active', true)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
 
+            if (error && error.code !== 'PGRST116') throw error;
+
             if (data?.code) {
                 setInviteCode(data.code);
             } else {
-                // Crear nuevo código via RPC
-                const { data: newCode, error } = await sb.rpc('create_group_with_invite', {
-                    p_group_id: id
-                });
-                if (error) throw error;
-                setInviteCode(newCode?.invite_code ?? null);
-            }
-            setInviteVisible(true);
-        } catch (e: any) {
-            // Si el RPC falla, generar código directo
-            try {
-                const sb = await getSupabase();
-                const { data: newCode, error } = await sb
+                // Solo si el grupo nunca tuvo código, crear uno nuevo
+                const { data: newCode, error: insertError } = await sb
                     .from('invite_codes')
                     .insert({ group_id: id, is_active: true })
                     .select('code')
                     .single();
-                if (error) throw error;
+                if (insertError) throw insertError;
                 setInviteCode(newCode?.code ?? null);
-                setInviteVisible(true);
-            } catch (e2: any) {
-                Alert.alert('Error', 'No se pudo obtener el código de invitación.');
             }
+            setInviteVisible(true);
+        } catch (e: any) {
+            Alert.alert('Error', 'No se pudo obtener el código de invitación.');
         } finally {
             setLoadingCode(false);
         }
