@@ -27,14 +27,15 @@ export default function AppLayout() {
     <>
     <ReviewModal visible={showReview} onClose={() => setShowReview(false)} />
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="home" />
+      {/* Tab bar principal */}
+      <Stack.Screen name="(tabs)" />
+      {/* Modales y pantallas de detalle */}
       <Stack.Screen name="permissions" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
       <Stack.Screen name="settings/biometric" />
       <Stack.Screen name="group/create" />
       <Stack.Screen name="group/join" />
       <Stack.Screen name="group/[id]/index" />
-      <Stack.Screen name="map" />
-      <Stack.Screen name="profile" />
+      <Stack.Screen name="map/[groupId]" />
       <Stack.Screen name="settings/trusted-contacts" />
       <Stack.Screen name="settings/invisible-mode" />
       <Stack.Screen name="settings/geofences" />
