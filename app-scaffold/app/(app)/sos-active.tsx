@@ -12,8 +12,8 @@ export default function SOSActiveScreen() {
     const [elapsed, setElapsed] = useState(0);
     const [cancelling, setCancelling] = useState(false);
 
-    // Animación solo en el ícono — NO en el contenedor entero para no bloquear toques
     const pulse = useRef(new Animated.Value(1)).current;
+    const startTime = useRef(Date.now());
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
@@ -25,15 +25,14 @@ export default function SOSActiveScreen() {
         ).start();
     }, []);
 
-    // Timer con ref para evitar múltiples instancias
+    // Timer basado en tiempo real — no acumula drift por JS thread ocupado
     useEffect(() => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+        startTime.current = Date.now();
+        timerRef.current = setInterval(() => {
+            setElapsed(Math.floor((Date.now() - startTime.current) / 1000));
+        }, 500);
         return () => {
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
-                timerRef.current = null;
-            }
+            if (timerRef.current) clearInterval(timerRef.current);
         };
     }, []);
 

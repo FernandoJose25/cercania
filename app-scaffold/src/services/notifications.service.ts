@@ -172,32 +172,21 @@ export async function sendPushNotifications(payload: PushPayload): Promise<void>
  */
 async function getGroupTokens(groupId: string): Promise<string[]> {
     const sb = await getSupabase();
-    const { data: { user } } = await sb.auth.getUser();
 
-    // Intento 1: RPC
-    const { data: rpcTokens, error: rpcError } = await sb.rpc('get_group_push_tokens', { p_group_id: groupId });
-    if (!rpcError && Array.isArray(rpcTokens) && rpcTokens.length > 0) {
-        return rpcTokens as string[];
-    }
+    // RPC SECURITY DEFINER — bypasea RLS, devuelve JSON array o null si no hay tokens
+    const { data: rpcResult, error: rpcError } = await sb.rpc('get_group_push_tokens', { p_group_id: groupId });
     if (rpcError) {
-        console.warn('[Push] RPC get_group_push_tokens falló, usando fallback:', rpcError.message);
+        console.warn('[Push] RPC get_group_push_tokens falló:', rpcError.message);
+        return [];
     }
 
-    // Intento 2: query directa a push_tokens
-    const { data: members } = await sb
-        .from('group_members')
-        .select('user_id')
-        .eq('group_id', groupId)
-        .neq('user_id', user?.id ?? '');
+    // La RPC devuelve json_agg(...) que puede ser null si no hay filas
+    if (!rpcResult) return [];
 
-    if (!members?.length) return [];
-
-    const { data: tokenRows } = await sb
-        .from('push_tokens')
-        .select('token')
-        .in('user_id', members.map(m => m.user_id));
-
-    return (tokenRows ?? []).map((r: any) => r.token).filter(Boolean);
+    const tokens: string[] = Array.isArray(rpcResult) ? rpcResult : Object.values(rpcResult);
+    return tokens.filter((t): t is string => typeof t === 'string' && (
+        t.startsWith('ExponentPushToken[') || t.startsWith('ExpoPushToken[')
+    ));
 }
 
 /**
