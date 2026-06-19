@@ -326,6 +326,7 @@ export async function notifyLowBattery(
 
 /**
  * Notifica a los miembros del grupo cuando alguien envía un mensaje en el chat.
+ * Usa getGroupTokens (RPC SECURITY DEFINER) para evitar el bloqueo de RLS en push_tokens.
  */
 export async function notifyChatMessage(
     groupId: string,
@@ -333,27 +334,18 @@ export async function notifyChatMessage(
     senderId: string,
     message: string
 ): Promise<void> {
-    const sb = await getSupabase();
-    const { data: members } = await sb
-        .from('group_members')
-        .select('user_id')
-        .eq('group_id', groupId)
-        .neq('user_id', senderId); // No notificar al que envía
-
-    if (!members?.length) return;
-
-    const userIds = members.map(m => m.user_id);
-    const { data: tokens } = await sb
-        .from('push_tokens')
-        .select('token')
-        .in('user_id', userIds);
-
-    if (!tokens?.length) return;
+    // getGroupTokens usa get_group_push_tokens RPC (SECURITY DEFINER) que sí puede leer
+    // tokens de otros usuarios del grupo, bypasseando el RLS de push_tokens.
+    const tokens = await getGroupTokens(groupId);
+    if (!tokens.length) {
+        console.warn('[Push] Chat: sin tokens para grupo', groupId);
+        return;
+    }
 
     const preview = message.length > 60 ? message.slice(0, 57) + '...' : message;
 
     await sendPushNotifications({
-        to: tokens.map(t => t.token),
+        to: tokens,
         title: `💬 ${senderName}`,
         body: preview,
         data: { type: 'chat', groupId, senderId },
