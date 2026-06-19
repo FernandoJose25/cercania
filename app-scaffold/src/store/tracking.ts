@@ -8,6 +8,7 @@ import {
   getLastKnownLocation,
   requestLocationPermissions,
   getLocationPermissionStatus,
+  registerFilteredLocationCallback,
   PermissionResult
 } from '../services/tracking.service';
 import { getSupabase } from '../lib/supabase';
@@ -16,6 +17,7 @@ interface TrackingState {
   isTracking: boolean;
   permissions: PermissionResult | null;
   lastLocation: Location.LocationObject | null;
+  filteredLocation: { latitude: number; longitude: number } | null;
   error: string | null;
   initializing: boolean;
   init: () => Promise<void>;
@@ -23,14 +25,21 @@ interface TrackingState {
   enableTracking: () => Promise<void>;
   disableTracking: () => Promise<void>;
   refreshLocation: () => Promise<void>;
+  setFilteredLocation: (loc: { latitude: number; longitude: number }) => void;
 }
 
-export const useTracking = create<TrackingState>((set, get) => ({
+export const useTracking = create<TrackingState>((set, get) => {
+  // Registrar el callback para recibir posiciones filtradas del servicio
+  registerFilteredLocationCallback((loc) => set({ filteredLocation: loc }));
+
+  return {
   isTracking: false,
   permissions: null,
   lastLocation: null,
+  filteredLocation: null,
   error: null,
   initializing: true,
+  setFilteredLocation: (loc) => set({ filteredLocation: loc }),
 
   init: async () => {
     set({ initializing: true, error: null });
@@ -102,4 +111,5 @@ export const useTracking = create<TrackingState>((set, get) => ({
     const loc = await getLastKnownLocation();
     set({ lastLocation: loc });
   }
-}));
+  };
+});

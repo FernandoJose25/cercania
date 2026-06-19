@@ -7,6 +7,11 @@ import { getSupabase } from '../lib/supabase';
 import { gpsKalman } from '../utils/kalman';
 import { notifyLowBattery } from './notifications.service';
 import { checkGeofenceArrivals } from './checkin.service';
+// Callback registrado por el store para recibir la posición filtrada sin crear dependencia circular
+let _onFilteredLocation: ((loc: { latitude: number; longitude: number }) => void) | null = null;
+export function registerFilteredLocationCallback(cb: (loc: { latitude: number; longitude: number }) => void) {
+  _onFilteredLocation = cb;
+}
 
 export const TRACKING_TASK = 'CERCANIA_LOCATION_TASK';
 
@@ -94,6 +99,11 @@ async function sendLocation(location: Location.LocationObject): Promise<void> {
 
     _lastLat = filtered.lat;
     _lastLng = filtered.lng;
+
+    // Actualizar posición filtrada en el store (sin subir a Supabase)
+    if (_onFilteredLocation) {
+      try { _onFilteredLocation({ latitude: filtered.lat, longitude: filtered.lng }); } catch (_) { }
+    }
 
     // Alerta de batería baja al grupo (solo una vez por sesión hasta recargar)
     if (batteryLevel != null && batteryLevel <= LOW_BATTERY && !isCharging && !_lowBatteryAlerted) {

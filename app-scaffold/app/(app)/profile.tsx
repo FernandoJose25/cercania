@@ -5,6 +5,8 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Button } from '../../src/components/ui/Button';
 import { Colors, Radius, Spacing, Typography, Shadows } from '../../src/lib/theme';
 import { useAuth } from '../../src/store/auth';
@@ -13,10 +15,10 @@ import { getInitials } from '../../src/utils/format';
 
 // ─── Fila de menú ───────────────────────────────────────────────────────────
 function MenuRow({
-    ionIcon, label, sub, badge, accent = false, danger = false, onPress,
+    ionIcon, label, sub, badge, accent = false, danger = false, isActive, onPress,
 }: {
     ionIcon: keyof typeof Ionicons.glyphMap; label: string; sub?: string; badge?: string;
-    accent?: boolean; danger?: boolean; onPress?: () => void;
+    accent?: boolean; danger?: boolean; isActive?: boolean; onPress?: () => void;
 }) {
     return (
         <Pressable
@@ -41,6 +43,13 @@ function MenuRow({
                     <Text style={rowS.badgeText}>{badge}</Text>
                 </View>
             )}
+            {isActive !== undefined && (
+                <View style={[rowS.activePill, isActive ? rowS.activePillOn : rowS.activePillOff]}>
+                    <Text style={[rowS.activePillText, { color: isActive ? '#fff' : '#78716C' }]}>
+                        {isActive ? 'ON' : 'OFF'}
+                    </Text>
+                </View>
+            )}
             <Ionicons name="chevron-forward" size={16} color={danger ? '#EF444466' : '#57534E'} />
         </Pressable>
     );
@@ -53,6 +62,10 @@ const rowS = StyleSheet.create({
     sub: { fontSize: 12, color: '#78716C', marginTop: 1 },
     badge: { backgroundColor: '#EF4444', borderRadius: Radius.pill, paddingHorizontal: 9, paddingVertical: 3 },
     badgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
+    activePill: { borderRadius: Radius.pill, paddingHorizontal: 8, paddingVertical: 3, marginRight: 4 },
+    activePillOn: { backgroundColor: '#10B981' },
+    activePillOff: { backgroundColor: '#292524' },
+    activePillText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
 });
 
 // ─── Pantalla principal ──────────────────────────────────────────────────────
@@ -67,6 +80,9 @@ export default function ProfileScreen() {
     const [deleteOtp, setDeleteOtp] = useState('');
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [editVisible, setEditVisible] = useState(false);
+    const [isInvisible, setIsInvisible] = useState(false);
+    const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
     useEffect(() => {
         setDisplayName(profile?.display_name ?? '');
@@ -74,6 +90,57 @@ export default function ProfileScreen() {
         setBackupEmail(profile?.backup_email ?? '');
         setBackupPhone(profile?.backup_phone ?? '');
     }, [profile]);
+
+    useEffect(() => {
+        const loadPrivacySettings = async () => {
+            if (!user?.id) return;
+            try {
+                const sb = await getSupabase();
+                const [{ data: invData }, { data: settData }] = await Promise.all([
+                    sb.from('invisible_mode').select('id').eq('user_id', user.id).limit(1),
+                    sb.from('user_settings').select('biometric_enabled').eq('user_id', user.id).single(),
+                ]);
+                setIsInvisible((invData?.length ?? 0) > 0);
+                setIsBiometricEnabled(settData?.biometric_enabled ?? false);
+            } catch { }
+        };
+        loadPrivacySettings();
+    }, [user?.id]);
+
+    const handlePickAvatar = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: 'images' as any,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+            if (result.canceled || !result.assets?.[0]) return;
+            setUploadingAvatar(true);
+            const manipulated = await ImageManipulator.manipulateAsync(
+                result.assets[0].uri,
+                [{ resize: { width: 400, height: 400 } }],
+                { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+            );
+            const sb = await getSupabase();
+            const path = `${user!.id}/avatar.jpg`;
+            const response = await fetch(manipulated.uri);
+            const blob = await response.blob();
+            const { error: uploadError } = await sb.storage.from('avatars').upload(path, blob, {
+                contentType: 'image/jpeg',
+                upsert: true,
+            });
+            if (uploadError) throw uploadError;
+            const { data: { publicUrl } } = sb.storage.from('avatars').getPublicUrl(path);
+            const avatarUrl = `${publicUrl}?t=${Date.now()}`;
+            await sb.from('profiles').update({ avatar_url: avatarUrl }).eq('id', user!.id);
+            await refreshProfile();
+        } catch (e: any) {
+            Alert.alert('Error al subir foto', e.message);
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
 
     const handleSave = async () => {
         if (!displayName.trim()) { Alert.alert('El nombre no puede estar vacío'); return; }
@@ -157,6 +224,14 @@ export default function ProfileScreen() {
                             <View style={styles.verifiedBadge}>
                                 <Text style={styles.verifiedIcon}>✓</Text>
                             </View>
+                            <Pressable
+                                style={styles.cameraBtn}
+                                onPress={handlePickAvatar}
+                                disabled={uploadingAvatar}
+                                hitSlop={6}
+                            >
+                                <Ionicons name="camera" size={16} color="#0C0A09" />
+                            </Pressable>
                         </View>
                         <Text style={styles.avatarName} numberOfLines={1}>{displayName || 'Sin nombre'}</Text>
                         <Text style={styles.avatarEmail} numberOfLines={1}>{user?.email}</Text>
@@ -176,9 +251,10 @@ export default function ProfileScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>PRIVACIDAD Y SEGURIDAD</Text>
                     <MenuRow ionIcon="eye-off-outline" label="Modo invisible" sub="Pausa tu ubicación temporalmente"
+                        isActive={isInvisible}
                         onPress={() => router.push('/(app)/settings/invisible-mode')} />
                     <MenuRow ionIcon="finger-print-outline" label="Biometría" sub="Huella / Face ID al abrir la app"
-                        accent onPress={() => router.push('/(app)/settings/biometric')} />
+                        accent isActive={isBiometricEnabled} onPress={() => router.push('/(app)/settings/biometric')} />
                     <MenuRow ionIcon="shield-checkmark-outline" label="Contactos de confianza" sub="Para recuperación de cuenta"
                         onPress={() => router.push('/(app)/settings/trusted-contacts')} />
                     <MenuRow ionIcon="share-outline" label="Compartir ubicación" sub="Link temporal para invitados"
@@ -349,6 +425,13 @@ const styles = StyleSheet.create({
         borderWidth: 3, borderColor: '#1C1917',
     },
     verifiedIcon: { fontSize: 13, color: '#fff', fontWeight: '900' },
+    cameraBtn: {
+        position: 'absolute', bottom: 0, left: 0,
+        width: 32, height: 32, borderRadius: 16,
+        backgroundColor: '#F59E0B',
+        alignItems: 'center', justifyContent: 'center',
+        borderWidth: 2, borderColor: '#1C1917',
+    },
     avatarName: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.3, maxWidth: '80%' },
     avatarEmail: { fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 4, marginBottom: Spacing.md, maxWidth: '85%' },
     sinceChip: {

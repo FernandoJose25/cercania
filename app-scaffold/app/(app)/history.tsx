@@ -27,11 +27,19 @@ interface MemberHistory {
 }
 
 const MEMBER_COLORS = ['#F59E0B', '#8B5CF6', '#10B981', '#3B82F6', '#EF4444', '#F97316'];
-const DATE_OPTIONS = [
+type RangeMode = 'day' | '7d' | '30d';
+
+const DAY_OPTIONS = [
   { label: 'Hoy', value: 0 },
   { label: 'Ayer', value: 1 },
   { label: 'Hace 2 días', value: 2 },
   { label: 'Hace 3 días', value: 3 },
+];
+
+const RANGE_OPTIONS: { label: string; value: RangeMode }[] = [
+  { label: 'Hoy', value: 'day' },
+  { label: '7 días', value: '7d' },
+  { label: '30 días', value: '30d' },
 ];
 
 function formatTime(iso: string): string {
@@ -114,6 +122,7 @@ export default function HistoryScreen() {
   const { groups } = useGroups();
   const insets = useSafeAreaInsets();
   const [selectedDayOffset, setSelectedDayOffset] = useState(0);
+  const [rangeMode, setRangeMode] = useState<RangeMode>('7d');
   const [selectedGroupIdx, setSelectedGroupIdx] = useState(0);
   const [members, setMembers] = useState<MemberHistory[]>([]);
   const [selectedMemberIdx, setSelectedMemberIdx] = useState(0);
@@ -128,8 +137,18 @@ export default function HistoryScreen() {
     try {
       const sb = await getSupabase();
       const now = new Date();
-      const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - selectedDayOffset);
-      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+      let dayStart: Date;
+      let dayEnd: Date;
+      if (rangeMode === '7d') {
+        dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        dayStart = new Date(dayEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (rangeMode === '30d') {
+        dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        dayStart = new Date(dayEnd.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else {
+        dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - selectedDayOffset);
+        dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+      }
 
       const { data: membersData } = await sb
         .from('group_members')
@@ -165,7 +184,7 @@ export default function HistoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedGroup, selectedDayOffset]);
+  }, [selectedGroup, selectedDayOffset, rangeMode]);
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
@@ -181,7 +200,7 @@ export default function HistoryScreen() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Historial</Text>
-          <Text style={styles.headerSub}>Recorridos del día</Text>
+          <Text style={styles.headerSub}>Recorridos · {rangeMode === '7d' ? 'Últimos 7 días' : rangeMode === '30d' ? 'Últimos 30 días' : 'Hoy'}</Text>
         </View>
         {totalPoints > 0 && (
           <View style={styles.countPill}>
@@ -218,20 +237,37 @@ export default function HistoryScreen() {
           </ScrollView>
         )}
 
-        {/* Selector de día */}
+        {/* Selector de rango */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-          {DATE_OPTIONS.map(opt => (
+          {RANGE_OPTIONS.map(opt => (
             <Pressable
               key={opt.value}
-              style={[styles.chip, opt.value === selectedDayOffset && styles.chipActive]}
-              onPress={() => setSelectedDayOffset(opt.value)}
+              style={[styles.chip, opt.value === rangeMode && styles.chipActive]}
+              onPress={() => setRangeMode(opt.value)}
             >
-              <Text style={[styles.chipText, opt.value === selectedDayOffset && styles.chipTextActive]}>
+              <Text style={[styles.chipText, opt.value === rangeMode && styles.chipTextActive]}>
                 {opt.label}
               </Text>
             </Pressable>
           ))}
         </ScrollView>
+
+        {/* Selector de día (solo si modo día) */}
+        {rangeMode === 'day' && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+            {DAY_OPTIONS.map(opt => (
+              <Pressable
+                key={opt.value}
+                style={[styles.chip, opt.value === selectedDayOffset && styles.chipActive]}
+                onPress={() => setSelectedDayOffset(opt.value)}
+              >
+                <Text style={[styles.chipText, opt.value === selectedDayOffset && styles.chipTextActive]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
 
         {/* Sin grupo */}
         {!selectedGroup ? (
@@ -322,8 +358,7 @@ export default function HistoryScreen() {
                 </View>
                 <Text style={styles.emptyTitle}>Sin recorrido</Text>
                 <Text style={styles.emptyText}>
-                  {currentMember.name.split(' ')[0]} no compartió su ubicación{' '}
-                  {selectedDayOffset === 0 ? 'hoy' : `hace ${selectedDayOffset} día${selectedDayOffset > 1 ? 's' : ''}`}
+                  Sin ubicaciones registradas en este período. Activa el rastreador GPS para empezar a registrar tu recorrido.
                 </Text>
               </View>
             ) : null}
