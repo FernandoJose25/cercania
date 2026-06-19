@@ -17,7 +17,7 @@ interface TrackingState {
   isTracking: boolean;
   permissions: PermissionResult | null;
   lastLocation: Location.LocationObject | null;
-  filteredLocation: { latitude: number; longitude: number } | null;
+  filteredLocation: { latitude: number; longitude: number; heading?: number | null } | null;
   error: string | null;
   initializing: boolean;
   init: () => Promise<void>;
@@ -25,7 +25,7 @@ interface TrackingState {
   enableTracking: () => Promise<void>;
   disableTracking: () => Promise<void>;
   refreshLocation: () => Promise<void>;
-  setFilteredLocation: (loc: { latitude: number; longitude: number }) => void;
+  setFilteredLocation: (loc: { latitude: number; longitude: number; heading?: number | null }) => void;
 }
 
 export const useTracking = create<TrackingState>((set, get) => {
@@ -36,7 +36,7 @@ export const useTracking = create<TrackingState>((set, get) => {
   isTracking: false,
   permissions: null,
   lastLocation: null,
-  filteredLocation: null,
+  filteredLocation: null as { latitude: number; longitude: number; heading?: number | null } | null,
   error: null,
   initializing: true,
   setFilteredLocation: (loc) => set({ filteredLocation: loc }),
