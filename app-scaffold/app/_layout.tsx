@@ -76,16 +76,16 @@ export default function RootLayout() {
         } else if (data?.type === 'recovery') {
           router.push('/(app)/settings/trusted-contacts');
         } else if (data?.type === 'checkin_prompt' && data?.zoneId) {
-          router.push('/(app)/home');
+          router.push('/(app)/(tabs)/home');
         } else if (data?.type === 'daily_summary') {
-          router.push('/(app)/home');
+          router.push('/(app)/(tabs)/home');
         } else if (data?.type === 'gathering' && data?.groupId) {
           router.push({
             pathname: '/(app)/map/[groupId]',
             params: { groupId: data.groupId }
           });
         } else if (data?.type === 'low_battery') {
-          router.push('/(app)/home');
+          router.push('/(app)/(tabs)/home');
         }
       }
     );
@@ -115,7 +115,7 @@ export default function RootLayout() {
     } else if (biometricGateOpen) {
       if (!onGate) router.replace('/biometric-gate');
     } else {
-      if (!inAppGroup) router.replace('/(app)/home');
+      if (!inAppGroup) router.replace('/(app)/(tabs)/home');
     }
   }, [initializing, session, profile, biometricGateOpen, segments, router]);
 

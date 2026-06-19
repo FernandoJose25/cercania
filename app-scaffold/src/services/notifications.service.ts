@@ -119,9 +119,14 @@ export async function registerForPushNotifications(): Promise<string | null> {
 export async function sendPushNotifications(payload: PushPayload): Promise<void> {
     if (!payload.to || payload.to.length === 0) return;
 
-    // Filtrar tokens válidos de Expo
-    const validTokens = payload.to.filter(t => t?.startsWith('ExponentPushToken['));
-    if (validTokens.length === 0) return;
+    // Tokens de Expo pueden empezar con ExponentPushToken[ o ExpoPushToken[
+    const validTokens = payload.to.filter(t =>
+        t?.startsWith('ExponentPushToken[') || t?.startsWith('ExpoPushToken[')
+    );
+    if (validTokens.length === 0) {
+        console.warn('[Push] Sin tokens válidos de Expo en la lista:', payload.to.length, 'tokens recibidos');
+        return;
+    }
 
     // Dividir en chunks de 100 (límite de Expo)
     const chunks = [];
@@ -142,18 +147,57 @@ export async function sendPushNotifications(payload: PushPayload): Promise<void>
         }));
 
         try {
-            await fetch('https://exp.host/--/api/v2/push/send', {
+            const res = await fetch('https://exp.host/--/api/v2/push/send', {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
+                    'Accept-Encoding': 'gzip, deflate',
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(messages)
             });
+            if (!res.ok) {
+                const body = await res.text().catch(() => '');
+                console.warn('[Push] HTTP', res.status, body);
+            }
         } catch (e: any) {
             console.warn('[Push] Error enviando:', e.message);
         }
     }
+}
+
+/**
+ * Obtiene tokens de push de los miembros de un grupo (excluyendo al usuario actual).
+ * Intenta primero con el RPC y si falla hace query directa.
+ */
+async function getGroupTokens(groupId: string): Promise<string[]> {
+    const sb = await getSupabase();
+    const { data: { user } } = await sb.auth.getUser();
+
+    // Intento 1: RPC
+    const { data: rpcTokens, error: rpcError } = await sb.rpc('get_group_push_tokens', { p_group_id: groupId });
+    if (!rpcError && Array.isArray(rpcTokens) && rpcTokens.length > 0) {
+        return rpcTokens as string[];
+    }
+    if (rpcError) {
+        console.warn('[Push] RPC get_group_push_tokens falló, usando fallback:', rpcError.message);
+    }
+
+    // Intento 2: query directa a push_tokens
+    const { data: members } = await sb
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', groupId)
+        .neq('user_id', user?.id ?? '');
+
+    if (!members?.length) return [];
+
+    const { data: tokenRows } = await sb
+        .from('push_tokens')
+        .select('token')
+        .in('user_id', members.map(m => m.user_id));
+
+    return (tokenRows ?? []).map((r: any) => r.token).filter(Boolean);
 }
 
 /**
@@ -166,9 +210,11 @@ export async function notifySOSAlert(
     alertId?: string,
     videoUrl?: string | null
 ): Promise<void> {
-    const sb = await getSupabase();
-    const { data: tokens } = await sb.rpc('get_group_push_tokens', { p_group_id: groupId });
-    if (!tokens || tokens.length === 0) return;
+    const tokens = await getGroupTokens(groupId);
+    if (tokens.length === 0) {
+        console.warn('[Push] SOS: sin tokens de destinatarios para grupo', groupId);
+        return;
+    }
 
     await sendPushNotifications({
         to: tokens,
@@ -197,10 +243,30 @@ export async function notifyRecoveryRequest(
     userName: string
 ): Promise<void> {
     const sb = await getSupabase();
-    const { data: tokens } = await sb.rpc('get_trusted_contact_tokens', {
+    const { data: rpcTokens, error: rpcError } = await sb.rpc('get_trusted_contact_tokens', {
         p_user_id: targetUserId
     });
-    if (!tokens || tokens.length === 0) return;
+
+    let tokens: string[] = [];
+    if (!rpcError && Array.isArray(rpcTokens) && rpcTokens.length > 0) {
+        tokens = rpcTokens as string[];
+    } else {
+        // Fallback: query directa
+        if (rpcError) console.warn('[Push] RPC get_trusted_contact_tokens falló:', rpcError.message);
+        const { data: contacts } = await sb
+            .from('trusted_contacts')
+            .select('contact_id')
+            .eq('user_id', targetUserId)
+            .eq('status', 'accepted');
+        if (contacts?.length) {
+            const { data: tokenRows } = await sb
+                .from('push_tokens')
+                .select('token')
+                .in('user_id', contacts.map(c => c.contact_id));
+            tokens = (tokenRows ?? []).map((r: any) => r.token).filter(Boolean);
+        }
+    }
+    if (tokens.length === 0) return;
 
     await sendPushNotifications({
         to: tokens,
@@ -245,9 +311,8 @@ export async function notifyLowBattery(
     memberName: string,
     batteryLevel: number
 ): Promise<void> {
-    const sb = await getSupabase();
-    const { data: tokens } = await sb.rpc('get_group_push_tokens', { p_group_id: groupId });
-    if (!tokens || tokens.length === 0) return;
+    const tokens = await getGroupTokens(groupId);
+    if (tokens.length === 0) return;
 
     await sendPushNotifications({
         to: tokens,
