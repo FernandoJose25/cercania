@@ -164,7 +164,8 @@ export default function MapScreen() {
         showsBuildings
         loadingEnabled
         loadingIndicatorColor={Colors.primary}
-        mapType="hybrid"
+        mapType="mutedStandard"
+        userInterfaceStyle="dark"
         onMapReady={() => { setMapReady(true); if (mapTimeoutRef.current) clearTimeout(mapTimeoutRef.current); }}
         onPress={() => setSelectedMemberId(null)}
         onPanDrag={() => setFollowing(false)}
@@ -323,9 +324,9 @@ export default function MapScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#0C0A09' },
   map: { flex: 1 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bg, gap: Spacing.md },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0C0A09', gap: Spacing.md },
   loadingText: { ...Typography.body, color: Colors.textSoft },
   errorText: { ...Typography.body, color: Colors.danger, textAlign: 'center' },
   retryBtn: { backgroundColor: Colors.primary, borderRadius: Radius.lg, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md },
@@ -339,26 +340,26 @@ const styles = StyleSheet.create({
   pinLabelName: { fontSize: 11, fontWeight: '700', color: Colors.text },
   pinLabelBattery: { fontSize: 10, color: Colors.textSoft },
   staleText: { fontSize: 10, color: Colors.mapStale, marginTop: 1 },
-  header: { position: 'absolute', top: 44, left: Spacing.lg, right: Spacing.lg, flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, borderRadius: 16, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, ...Shadows.floating },
-  headerBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: Colors.surfaceAlt },
-  headerBtnText: { fontSize: 18, color: Colors.text, fontWeight: '700' },
+  header: { position: 'absolute', top: 44, left: Spacing.lg, right: Spacing.lg, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(28,25,23,0.95)', borderRadius: 16, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, ...Shadows.floating, borderWidth: 1, borderColor: '#292524' },
+  headerBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, backgroundColor: '#292524' },
+  headerBtnText: { fontSize: 18, color: '#FAFAF9', fontWeight: '700' },
   headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs },
   headerEmoji: { fontSize: 18 },
   headerName: { ...Typography.h3, color: Colors.text },
   fab: { position: 'absolute', right: Spacing.lg, bottom: 160, gap: Spacing.sm },
-  fabBtn: { width: 50, height: 50, borderRadius: 25, backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', ...Shadows.floating },
+  fabBtn: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(28,25,23,0.95)', alignItems: 'center', justifyContent: 'center', ...Shadows.floating, borderWidth: 1, borderColor: '#3C3936' },
   fabIcon: { fontSize: 22 },
-  panel: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: Spacing.sm, paddingBottom: Spacing.xl, ...Shadows.floating },
-  panelHandle: { width: 36, height: 4, backgroundColor: Colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.sm },
+  panel: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(28,25,23,0.97)', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: Spacing.sm, paddingBottom: Spacing.xl, ...Shadows.floating, borderTopWidth: 1, borderTopColor: '#292524' },
+  panelHandle: { width: 36, height: 4, backgroundColor: '#3C3936', borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.sm },
   panelContent: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.surfaceAlt, borderRadius: Radius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, minWidth: 140, borderWidth: 1.5, borderColor: 'transparent' },
-  chipSelected: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: '#292524', borderRadius: Radius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, minWidth: 140, borderWidth: 1.5, borderColor: 'transparent' },
+  chipSelected: { borderColor: Colors.primary, backgroundColor: 'rgba(245,158,11,0.12)' },
   chipMe: { borderColor: Colors.primary + '55' },
   chipAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   chipAvatarText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   chipInfo: { flex: 1 },
-  chipName: { ...Typography.bodyBold, color: Colors.text, fontSize: 13 },
-  chipStatus: { ...Typography.small, color: Colors.textSoft, marginTop: 1 },
+  chipName: { ...Typography.bodyBold, color: '#FAFAF9', fontSize: 13 },
+  chipStatus: { ...Typography.small, color: '#78716C', marginTop: 1 },
   chipSOS: { fontSize: 18 },
   geofenceLabel: {
     flexDirection: 'row', alignItems: 'center', gap: 4,

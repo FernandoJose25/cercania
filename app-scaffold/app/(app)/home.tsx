@@ -220,58 +220,6 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* ── SECCIÓN: ACCIONES ── */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>ACCIONES RÁPIDAS</Text>
-        </View>
-        <View style={styles.quickGrid}>
-          <Pressable style={styles.quickCard} onPress={() => router.push('/(app)/group/create')}>
-            <View style={[styles.quickIcon, { backgroundColor: Colors.primaryLight }]}>
-              <Text style={styles.quickEmoji}>➕</Text>
-            </View>
-            <Text style={styles.quickTitle}>Crear grupo</Text>
-            <Text style={styles.quickSub}>Invita a tu familia</Text>
-          </Pressable>
-          <Pressable style={styles.quickCard} onPress={() => router.push('/(app)/group/join')}>
-            <View style={[styles.quickIcon, { backgroundColor: '#EDE9FE' }]}>
-              <Text style={styles.quickEmoji}>🔗</Text>
-            </View>
-            <Text style={styles.quickTitle}>Unirse</Text>
-            <Text style={styles.quickSub}>Con código</Text>
-          </Pressable>
-          <Pressable style={styles.quickCard} onPress={() => {
-            if (groups.length === 1) router.push({ pathname: '/(app)/settings/geofences', params: { groupId: groups[0].id, groupName: groups[0].name } });
-            else if (groups.length > 1) Alert.alert('¿Para qué grupo?', 'Abre el grupo y toca "Zonas seguras".');
-            else Alert.alert('Sin grupos', 'Únete a un grupo primero.');
-          }}>
-            <View style={[styles.quickIcon, { backgroundColor: '#ECFDF5' }]}>
-              <Text style={styles.quickEmoji}>📍</Text>
-            </View>
-            <Text style={styles.quickTitle}>Zonas</Text>
-            <Text style={styles.quickSub}>Lugares seguros</Text>
-          </Pressable>
-        </View>
-
-        {/* Segunda fila de acciones */}
-        <View style={styles.miniGrid}>
-          <Pressable style={styles.miniCard} onPress={() => router.push('/(app)/history')}>
-            <Text style={styles.miniEmoji}>🗺️</Text>
-            <Text style={styles.miniTitle}>Historial</Text>
-          </Pressable>
-          <Pressable style={styles.miniCard} onPress={() => router.push('/(app)/settings/share-location')}>
-            <Text style={styles.miniEmoji}>📤</Text>
-            <Text style={styles.miniTitle}>Compartir</Text>
-          </Pressable>
-          <Pressable style={styles.miniCard} onPress={() => router.push('/(app)/settings/invisible-mode')}>
-            <Text style={styles.miniEmoji}>👁️</Text>
-            <Text style={styles.miniTitle}>Invisible</Text>
-          </Pressable>
-          <Pressable style={styles.miniCard} onPress={() => router.push('/(app)/settings/travel-mode')}>
-            <Text style={styles.miniEmoji}>✈️</Text>
-            <Text style={styles.miniTitle}>Modo viaje</Text>
-          </Pressable>
-        </View>
-
         {/* ── SECCIÓN: GRUPOS ── */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>MIS GRUPOS</Text>
@@ -349,7 +297,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: Colors.bg },
+  scroll: { flex: 1, backgroundColor: '#0C0A09' },
   content: { paddingBottom: Spacing.xxxl },
 
   // ── HEADER ──
@@ -400,7 +348,7 @@ const styles = StyleSheet.create({
   },
   statsRow: { flexDirection: 'row', gap: Spacing.sm },
   statChip: {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.1)',
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.07)',
     borderRadius: Radius.lg, paddingVertical: 10,
     alignItems: 'center', gap: 2,
   },
@@ -428,56 +376,56 @@ const styles = StyleSheet.create({
 
   permBanner: {
     marginHorizontal: Spacing.xl, marginTop: Spacing.md,
-    backgroundColor: '#FFF7ED', borderRadius: Radius.xl, padding: Spacing.md,
+    backgroundColor: '#1C1917', borderRadius: Radius.xl, padding: Spacing.md,
     flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    borderWidth: 1, borderColor: '#FED7AA',
+    borderWidth: 1, borderColor: '#F59E0B33',
   },
   permBannerIcon: { fontSize: 20 },
-  permBannerTitle: { fontSize: 13, fontWeight: '700', color: '#92400E' },
-  permBannerSub: { fontSize: 12, color: '#B45309', marginTop: 1 },
+  permBannerTitle: { fontSize: 13, fontWeight: '700', color: '#F59E0B' },
+  permBannerSub: { fontSize: 12, color: '#A8A29E', marginTop: 1 },
   permBannerBtn: { backgroundColor: Colors.primary, borderRadius: Radius.pill, paddingHorizontal: 14, paddingVertical: 6 },
-  permBannerBtnText: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  permBannerBtnText: { fontSize: 12, fontWeight: '800', color: '#0C0A09' },
 
   // ── TRACKER ──
   trackerCard: {
     marginHorizontal: Spacing.xl, marginTop: Spacing.lg,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: Colors.surface, borderRadius: Radius.xl,
-    padding: Spacing.lg, borderWidth: 1.5, borderColor: Colors.border,
+    backgroundColor: '#1C1917', borderRadius: Radius.xl,
+    padding: Spacing.lg, borderWidth: 1.5, borderColor: '#292524',
     ...Shadows.card,
   },
-  trackerCardOn: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+  trackerCardOn: { borderColor: '#F59E0B', backgroundColor: 'rgba(28,25,23,0.88)' },
   trackerLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flex: 1 },
   trackerIconWrap: {
     width: 52, height: 52, borderRadius: 16,
-    backgroundColor: Colors.surfaceAlt, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#292524', alignItems: 'center', justifyContent: 'center',
   },
   trackerIconWrapOn: { backgroundColor: Colors.primary },
   trackerEmoji: { fontSize: 26 },
-  trackerTitle: { fontSize: 15, fontWeight: '700', color: Colors.text },
-  trackerSub: { fontSize: 12, color: Colors.textSoft, marginTop: 2 },
+  trackerTitle: { fontSize: 15, fontWeight: '700', color: '#FAFAF9' },
+  trackerSub: { fontSize: 12, color: '#A8A29E', marginTop: 2 },
 
   // ── SECTION ──
   sectionHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginHorizontal: Spacing.xl, marginTop: Spacing.xxl, marginBottom: Spacing.md,
   },
-  sectionLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2, color: Colors.textMuted },
-  sectionAction: { fontSize: 13, fontWeight: '700', color: Colors.primary },
+  sectionLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2, color: '#78716C' },
+  sectionAction: { fontSize: 13, fontWeight: '700', color: '#F59E0B' },
 
   // ── SOS CARD ──
   sosCard: {
     marginHorizontal: Spacing.xl,
-    backgroundColor: '#FFF1F2',
+    backgroundColor: '#1C1917',
     borderRadius: Radius.xl, padding: Spacing.xl,
-    borderWidth: 1.5, borderColor: '#FFD5D5',
+    borderWidth: 1.5, borderColor: '#EF444433',
   },
   sosCardTop: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'flex-start', marginBottom: Spacing.lg,
   },
-  sosCardTitle: { fontSize: 18, fontWeight: '800', color: Colors.text },
-  sosCardSub: { fontSize: 12, color: '#F87171', marginTop: 3 },
+  sosCardTitle: { fontSize: 18, fontWeight: '800', color: '#FAFAF9' },
+  sosCardSub: { fontSize: 12, color: '#A8A29E', marginTop: 3 },
   sosBadge: {
     backgroundColor: Colors.danger, borderRadius: Radius.pill,
     paddingHorizontal: 12, paddingVertical: 4,
@@ -486,76 +434,54 @@ const styles = StyleSheet.create({
   sosCenter: { alignItems: 'center', paddingVertical: Spacing.md },
   sosHint: { fontSize: 12, color: Colors.textMuted, textAlign: 'center', marginTop: Spacing.sm },
 
-  // ── QUICK GRID ──
-  quickGrid: { flexDirection: 'row', gap: Spacing.md, marginHorizontal: Spacing.xl },
-  quickCard: {
-    flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.xl,
-    padding: Spacing.md, alignItems: 'center',
-    borderWidth: 1.5, borderColor: Colors.border, ...Shadows.card,
-  },
-  quickIcon: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  quickEmoji: { fontSize: 26 },
-  quickTitle: { fontSize: 13, fontWeight: '700', color: Colors.text, textAlign: 'center' },
-  quickSub: { fontSize: 11, color: Colors.textMuted, marginTop: 2, textAlign: 'center' },
-
-  // ── MINI GRID ──
-  miniGrid: { flexDirection: 'row', gap: Spacing.sm, marginHorizontal: Spacing.xl, marginTop: Spacing.sm },
-  miniCard: {
-    flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.lg,
-    paddingVertical: Spacing.md, alignItems: 'center', gap: 4,
-    borderWidth: 1, borderColor: Colors.border,
-  },
-  miniEmoji: { fontSize: 22 },
-  miniTitle: { fontSize: 11, fontWeight: '700', color: Colors.textSoft },
-
   // ── GRUPOS ──
   emptyCard: {
-    marginHorizontal: Spacing.xl, backgroundColor: Colors.surface,
+    marginHorizontal: Spacing.xl, backgroundColor: '#1C1917',
     borderRadius: Radius.xl, padding: Spacing.xxl, alignItems: 'center',
-    borderWidth: 1.5, borderColor: Colors.border, borderStyle: 'dashed',
+    borderWidth: 1.5, borderColor: '#292524', borderStyle: 'dashed',
   },
   emptyEmoji: { fontSize: 52, marginBottom: Spacing.md },
-  emptyTitle: { fontSize: 18, fontWeight: '800', color: Colors.text, marginBottom: Spacing.xs },
-  emptyBody: { fontSize: 14, color: Colors.textSoft, textAlign: 'center', lineHeight: 20, marginBottom: Spacing.lg },
+  emptyTitle: { fontSize: 18, fontWeight: '800', color: '#FAFAF9', marginBottom: Spacing.xs },
+  emptyBody: { fontSize: 14, color: '#A8A29E', textAlign: 'center', lineHeight: 20, marginBottom: Spacing.lg },
   emptyActions: { flexDirection: 'row', gap: Spacing.sm },
   emptyBtn: {
-    backgroundColor: Colors.primary, borderRadius: Radius.pill,
+    backgroundColor: '#F59E0B', borderRadius: Radius.pill,
     paddingHorizontal: Spacing.lg, paddingVertical: 10, ...Shadows.button,
   },
-  emptyBtnGhost: { backgroundColor: Colors.surface, borderWidth: 1.5, borderColor: Colors.primary },
-  emptyBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  emptyBtnGhost: { backgroundColor: '#1C1917', borderWidth: 1.5, borderColor: '#F59E0B' },
+  emptyBtnText: { fontSize: 13, fontWeight: '700', color: '#0C0A09' },
 
   groupRow: {
     marginHorizontal: Spacing.xl, marginBottom: Spacing.sm,
     flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    backgroundColor: Colors.surface, borderRadius: Radius.xl,
-    padding: Spacing.lg, ...Shadows.card,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: '#1C1917', borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    borderWidth: 1, borderColor: '#292524',
   },
   groupAvatar: { width: 54, height: 54, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   groupAvatarEmoji: { fontSize: 28 },
   groupInfo: { flex: 1 },
-  groupName: { fontSize: 15, fontWeight: '700', color: Colors.text },
-  groupSub: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+  groupName: { fontSize: 15, fontWeight: '700', color: '#FAFAF9' },
+  groupSub: { fontSize: 12, color: '#78716C', marginTop: 2 },
   groupChevron: {
     width: 32, height: 32, borderRadius: 10,
-    backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(245,158,11,0.15)', alignItems: 'center', justifyContent: 'center',
   },
-  groupChevronText: { fontSize: 20, color: Colors.primary, fontWeight: '700' },
+  groupChevronText: { fontSize: 20, color: '#F59E0B', fontWeight: '700' },
 
   // ── MODAL SOS ──
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#1C1917',
     borderTopLeftRadius: 28, borderTopRightRadius: 28,
     padding: Spacing.xl, gap: Spacing.md, paddingBottom: 36,
   },
-  modalHandle: { width: 40, height: 4, backgroundColor: Colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.md },
+  modalHandle: { width: 40, height: 4, backgroundColor: '#3C3936', borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.md },
   modalTitle: { fontSize: 20, fontWeight: '800', color: Colors.danger, textAlign: 'center' },
-  modalSub: { fontSize: 14, color: Colors.textSoft, textAlign: 'center' },
+  modalSub: { fontSize: 14, color: '#A8A29E', textAlign: 'center' },
   modalGroupRow: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-    backgroundColor: Colors.surfaceAlt, borderRadius: Radius.lg, padding: Spacing.md,
+    backgroundColor: '#292524', borderRadius: Radius.lg, padding: Spacing.md,
   },
-  modalGroupName: { fontSize: 15, fontWeight: '700', color: Colors.text, flex: 1 },
+  modalGroupName: { fontSize: 15, fontWeight: '700', color: '#FAFAF9', flex: 1 },
 });

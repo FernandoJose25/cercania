@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Stack } from 'expo-router';
+import { Pressable } from 'react-native';
+import { Stack, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/store/auth';
 import { useTracking } from '../../src/store/tracking';
 import { markInstallDate, shouldAskForReview } from '../../src/services/review.service';
@@ -26,7 +28,18 @@ export default function AppLayout() {
   return (
     <>
     <ReviewModal visible={showReview} onClose={() => setShowReview(false)} />
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{
+      headerShown: false,
+      headerStyle: { backgroundColor: '#1C1917' },
+      headerTintColor: '#fff',
+      headerBackTitle: '',
+      headerBackImageSource: undefined,
+      headerLeft: ({ canGoBack }: { canGoBack: boolean }) => canGoBack ? (
+        <Pressable onPress={() => router.back()} style={{ paddingLeft: 8 }}>
+          <Ionicons name="chevron-back" size={26} color="#fff" />
+        </Pressable>
+      ) : null,
+    }}>
       {/* Tab bar principal */}
       <Stack.Screen name="(tabs)" />
       {/* Modales y pantallas de detalle */}

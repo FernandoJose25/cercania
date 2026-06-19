@@ -3,7 +3,7 @@ import {
   ActivityIndicator, Alert, FlatList, Modal, Pressable,
   ScrollView, StyleSheet, Text, TextInput, View
 } from 'react-native';
-import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Circle, Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,19 @@ import { Colors, Radius, Spacing } from '../../../src/lib/theme';
 import { useAuth } from '../../../src/store/auth';
 import { getSupabase } from '../../../src/lib/supabase';
 import * as Location from 'expo-location';
+
+const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&language=es&types=address,poi`
+    );
+    const json = await res.json();
+    return json.features?.[0]?.place_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  } catch {
+    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  }
+}
 
 interface Geofence {
   id: string;
@@ -124,6 +137,8 @@ export default function GeofencesScreen() {
   const [radius, setRadius] = useState(200);
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const [mapRegion, setMapRegion] = useState<Region | null>(null);
+  const [geocodedAddress, setGeocodedAddress] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(paramGroupId);
   const [groups, setGroups] = useState<{ id: string; name: string; emoji: string }[]>([]);
@@ -153,15 +168,27 @@ export default function GeofencesScreen() {
       if (status !== 'granted') throw new Error('Permiso de ubicación denegado');
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const c = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+      const region: Region = { ...c, latitudeDelta: 0.003, longitudeDelta: 0.003 };
       setCoords(c);
+      setMapRegion(region);
+      setGeocodedAddress('Obteniendo dirección...');
+      reverseGeocode(c.latitude, c.longitude).then(setGeocodedAddress);
       setTimeout(() => {
-        mapRef.current?.animateToRegion({ ...c, latitudeDelta: 0.003, longitudeDelta: 0.003 }, 600);
+        mapRef.current?.animateToRegion(region, 600);
       }, 300);
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally {
       setLoadingLocation(false);
     }
+  };
+
+  const handleRegionChangeComplete = (region: Region) => {
+    const c = { latitude: region.latitude, longitude: region.longitude };
+    setCoords(c);
+    setMapRegion(region);
+    setGeocodedAddress('Buscando dirección...');
+    reverseGeocode(c.latitude, c.longitude).then(setGeocodedAddress);
   };
 
   const loadZones = useCallback(async () => {
@@ -435,42 +462,51 @@ export default function GeofencesScreen() {
                 </View>
 
                 <View style={mS.mapHintRow}>
-                  <Ionicons name="hand-left-outline" size={14} color="#78716C" />
-                  <Text style={mS.mapHintText}>Toca el mapa o arrastra el pin para posicionar la zona</Text>
+                  <Ionicons name="move-outline" size={14} color="#78716C" />
+                  <Text style={mS.mapHintText}>Mueve el mapa para posicionar el pin en la zona deseada</Text>
                 </View>
 
-                {/* Mapa FUERA de ScrollView = drag funciona correctamente */}
+                {/* Mapa con pin fijo en el centro — estilo Rappi */}
                 <View style={mS.mapWrap}>
                   {coords ? (
-                    <MapView
-                      ref={mapRef}
-                      style={mS.map}
-                      provider={PROVIDER_GOOGLE}
-                      mapType="hybrid"
-                      initialRegion={{ ...coords, latitudeDelta: 0.003, longitudeDelta: 0.003 }}
-                      onPress={e => setCoords(e.nativeEvent.coordinate)}
-                      scrollEnabled
-                      zoomEnabled
-                      rotateEnabled={false}
-                    >
-                      <Marker
-                        coordinate={coords}
-                        draggable
-                        onDragEnd={e => setCoords(e.nativeEvent.coordinate)}
-                        title={name || 'Zona segura'}
+                    <>
+                      <MapView
+                        ref={mapRef}
+                        style={mS.map}
+                        provider={PROVIDER_GOOGLE}
+                        mapType="mutedStandard"
+                        userInterfaceStyle="dark"
+                        initialRegion={mapRegion ?? { ...coords, latitudeDelta: 0.003, longitudeDelta: 0.003 }}
+                        scrollEnabled
+                        zoomEnabled
+                        rotateEnabled={false}
+                        onRegionChangeComplete={handleRegionChangeComplete}
                       >
+                        {coords && (
+                          <Circle
+                            center={coords}
+                            radius={radius}
+                            fillColor="rgba(245,158,11,0.15)"
+                            strokeColor="#F59E0B"
+                            strokeWidth={2}
+                          />
+                        )}
+                      </MapView>
+                      {/* Pin fijo en el centro */}
+                      <View pointerEvents="none" style={mS.fixedPinWrap}>
                         <View style={mS.markerWrap}>
                           <Text style={{ fontSize: 24 }}>{icon}</Text>
                         </View>
-                      </Marker>
-                      <Circle
-                        center={coords}
-                        radius={radius}
-                        fillColor="rgba(245,158,11,0.15)"
-                        strokeColor="#F59E0B"
-                        strokeWidth={2}
-                      />
-                    </MapView>
+                        <View style={mS.fixedPinShadow} />
+                      </View>
+                      {/* Dirección bajo el pin */}
+                      {geocodedAddress ? (
+                        <View style={mS.addressBar}>
+                          <Ionicons name="location" size={14} color="#F59E0B" />
+                          <Text style={mS.addressText} numberOfLines={2}>{geocodedAddress}</Text>
+                        </View>
+                      ) : null}
+                    </>
                   ) : (
                     <View style={mS.mapLoading}>
                       <ActivityIndicator color={Colors.primary} size="large" />
@@ -650,10 +686,27 @@ const mS = StyleSheet.create({
   mapWrap: {
     flex: 1, borderRadius: Radius.lg, overflow: 'hidden',
     borderWidth: 1.5, borderColor: '#292524', minHeight: 280,
+    position: 'relative',
   },
   map: { flex: 1 },
   mapLoading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0C0A09', gap: 12 },
   mapLoadingText: { fontSize: 13, color: '#78716C' },
+  fixedPinWrap: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  fixedPinShadow: {
+    width: 8, height: 4, borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.25)', marginTop: 2,
+  },
+  addressBar: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(28,25,23,0.92)',
+    flexDirection: 'row', alignItems: 'flex-start', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: '#292524',
+  },
+  addressText: { flex: 1, fontSize: 12, color: '#E7E5E4', lineHeight: 17 },
   markerWrap: {
     backgroundColor: '#1C1917', borderRadius: 20, padding: 6,
     borderWidth: 2, borderColor: '#F59E0B',
