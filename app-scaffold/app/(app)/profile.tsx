@@ -4,6 +4,7 @@ import {
     Text, TextInput, View
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/ui/Button';
 import { Colors, Radius, Spacing, Typography, Shadows } from '../../src/lib/theme';
 import { useAuth } from '../../src/store/auth';
@@ -12,9 +13,9 @@ import { getInitials } from '../../src/utils/format';
 
 // ─── Fila de menú ───────────────────────────────────────────────────────────
 function MenuRow({
-    icon, label, sub, badge, accent = false, danger = false, onPress,
+    ionIcon, label, sub, badge, accent = false, danger = false, onPress,
 }: {
-    icon: string; label: string; sub?: string; badge?: string;
+    ionIcon: keyof typeof Ionicons.glyphMap; label: string; sub?: string; badge?: string;
     accent?: boolean; danger?: boolean; onPress?: () => void;
 }) {
     return (
@@ -23,12 +24,16 @@ function MenuRow({
             onPress={onPress}
         >
             <View style={[rowS.iconBox, {
-                backgroundColor: danger ? '#FEE2E2' : accent ? Colors.primaryLight : '#F4F4F5',
+                backgroundColor: danger ? '#EF444422' : accent ? '#F59E0B22' : '#29252422',
             }]}>
-                <Text style={rowS.icon}>{icon}</Text>
+                <Ionicons
+                    name={ionIcon}
+                    size={20}
+                    color={danger ? '#EF4444' : accent ? '#F59E0B' : '#A8A29E'}
+                />
             </View>
             <View style={rowS.body}>
-                <Text style={[rowS.label, danger && { color: Colors.danger }]}>{label}</Text>
+                <Text style={[rowS.label, danger && { color: '#EF4444' }]}>{label}</Text>
                 {sub && <Text style={rowS.sub} numberOfLines={1}>{sub}</Text>}
             </View>
             {badge && (
@@ -36,20 +41,18 @@ function MenuRow({
                     <Text style={rowS.badgeText}>{badge}</Text>
                 </View>
             )}
-            <Text style={[rowS.arrow, danger && { color: Colors.danger }]}>›</Text>
+            <Ionicons name="chevron-forward" size={16} color={danger ? '#EF444466' : '#57534E'} />
         </Pressable>
     );
 }
 const rowS = StyleSheet.create({
     wrap: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 13 },
     iconBox: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-    icon: { fontSize: 20 },
     body: { flex: 1 },
-    label: { fontSize: 15, fontWeight: '600', color: Colors.text },
-    sub: { fontSize: 12, color: Colors.textMuted, marginTop: 1 },
-    badge: { backgroundColor: Colors.primary, borderRadius: Radius.pill, paddingHorizontal: 9, paddingVertical: 3 },
+    label: { fontSize: 15, fontWeight: '600', color: '#FAFAF9' },
+    sub: { fontSize: 12, color: '#78716C', marginTop: 1 },
+    badge: { backgroundColor: '#EF4444', borderRadius: Radius.pill, paddingHorizontal: 9, paddingVertical: 3 },
     badgeText: { fontSize: 11, fontWeight: '800', color: '#fff' },
-    arrow: { fontSize: 22, color: Colors.textMuted },
 });
 
 // ─── Pantalla principal ──────────────────────────────────────────────────────
@@ -135,7 +138,7 @@ export default function ProfileScreen() {
                     <View style={styles.headerCircle} />
 
                     <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-                        <Text style={styles.backIcon}>←</Text>
+                        <Ionicons name="chevron-back" size={22} color="#fff" />
                     </Pressable>
 
                     {/* Avatar centrado */}
@@ -163,7 +166,8 @@ export default function ProfileScreen() {
                             </View>
                         )}
                         <Pressable style={styles.editBtn} onPress={() => setEditVisible(true)}>
-                            <Text style={styles.editBtnText}>✏️  Editar perfil</Text>
+                            <Ionicons name="pencil-outline" size={14} color="#fff" />
+                            <Text style={styles.editBtnText}>Editar perfil</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -171,42 +175,33 @@ export default function ProfileScreen() {
                 {/* ── PRIVACIDAD Y SEGURIDAD ── */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>PRIVACIDAD Y SEGURIDAD</Text>
-                    <MenuRow icon="👁️" label="Modo invisible" sub="Pausa tu ubicación temporalmente"
+                    <MenuRow ionIcon="eye-off-outline" label="Modo invisible" sub="Pausa tu ubicación temporalmente"
                         onPress={() => router.push('/(app)/settings/invisible-mode')} />
-                    <MenuRow icon="🔐" label="Biometría" sub="Huella / Face ID al abrir la app"
+                    <MenuRow ionIcon="finger-print-outline" label="Biometría" sub="Huella / Face ID al abrir la app"
                         accent onPress={() => router.push('/(app)/settings/biometric')} />
-                    <MenuRow icon="🛡️" label="Contactos de confianza" sub="Para recuperación de cuenta"
+                    <MenuRow ionIcon="shield-checkmark-outline" label="Contactos de confianza" sub="Para recuperación de cuenta"
                         onPress={() => router.push('/(app)/settings/trusted-contacts')} />
-                    <MenuRow icon="📤" label="Compartir ubicación" sub="Link temporal para invitados"
+                    <MenuRow ionIcon="share-outline" label="Compartir ubicación" sub="Link temporal para invitados"
                         onPress={() => router.push('/(app)/settings/share-location')} />
-                </View>
-
-                {/* ── GRUPOS ── */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>GRUPOS Y ZONAS</Text>
-                    <MenuRow icon="👨‍👩‍👧‍👦" label="Mis grupos" sub="Ver y gestionar grupos familiares"
-                        accent onPress={() => router.back()} />
-                    <MenuRow icon="📍" label="Zonas seguras" sub="Casa, colegio, trabajo..."
-                        onPress={() => router.push('/(app)/settings/geofences')} />
                 </View>
 
                 {/* ── FUNCIONES AVANZADAS ── */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>FUNCIONES AVANZADAS</Text>
-                    <MenuRow icon="🗺️" label="Historial de recorridos" sub="Dónde estuviste hoy"
+                    <MenuRow ionIcon="time-outline" label="Historial de recorridos" sub="Dónde estuviste hoy"
                         onPress={() => router.push('/(app)/history')} />
-                    <MenuRow icon="✈️" label="Modo viaje" sub="Tracking intensivo fuera de casa"
+                    <MenuRow ionIcon="airplane-outline" label="Modo viaje" sub="Tracking intensivo fuera de casa"
                         onPress={() => router.push('/(app)/settings/travel-mode')} />
                 </View>
 
                 {/* ── RECUPERACIÓN DE CUENTA ── */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>RECUPERACIÓN DE CUENTA</Text>
-                    <MenuRow icon="📧" label="Correo de respaldo"
+                    <MenuRow ionIcon="mail-outline" label="Correo de respaldo"
                         sub={backupEmail || 'Sin configurar — toca para agregar'}
                         badge={!backupEmail ? '!' : undefined}
                         onPress={() => setEditVisible(true)} />
-                    <MenuRow icon="📱" label="Teléfono de respaldo"
+                    <MenuRow ionIcon="phone-portrait-outline" label="Teléfono de respaldo"
                         sub={backupPhone || 'Sin configurar — toca para agregar'}
                         onPress={() => setEditVisible(true)} />
                 </View>
@@ -214,14 +209,14 @@ export default function ProfileScreen() {
                 {/* ── SESIÓN ── */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>SESIÓN</Text>
-                    <MenuRow icon="🚪" label="Cerrar sesión" sub="Salir de esta cuenta"
+                    <MenuRow ionIcon="log-out-outline" label="Cerrar sesión" sub="Salir de esta cuenta"
                         onPress={signOut} />
-                    <MenuRow icon="🗑️" label="Eliminar cuenta" sub="Acción permanente e irreversible"
+                    <MenuRow ionIcon="trash-outline" label="Eliminar cuenta" sub="Acción permanente e irreversible"
                         danger onPress={handleDeleteAccount} />
                 </View>
 
                 {/* Versión */}
-                <Text style={styles.version}>Cercanía · v0.1.6</Text>
+                <Text style={styles.version}>Cercanía · v0.1.9</Text>
                 <View style={{ height: 32 }} />
             </ScrollView>
 
@@ -364,6 +359,7 @@ const styles = StyleSheet.create({
     editBtn: {
         backgroundColor: Colors.primary, borderRadius: Radius.pill,
         paddingHorizontal: 24, paddingVertical: 10,
+        flexDirection: 'row', alignItems: 'center', gap: 6,
         ...Shadows.button,
     },
     editBtnText: { fontSize: 14, fontWeight: '800', color: '#fff' },
@@ -386,14 +382,14 @@ const styles = StyleSheet.create({
     },
 
     // ── MODALES ──
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
     modalSheet: {
-        backgroundColor: Colors.surface,
+        backgroundColor: '#1C1917',
         borderTopLeftRadius: 28, borderTopRightRadius: 28,
         padding: Spacing.xl, paddingBottom: 40,
     },
     modalHandle: {
-        width: 40, height: 4, backgroundColor: Colors.border,
+        width: 40, height: 4, backgroundColor: '#3C3936',
         borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.lg,
     },
     dangerIconBox: {
@@ -402,19 +398,19 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         alignSelf: 'center', marginBottom: Spacing.md,
     },
-    modalTitle: { ...Typography.h2, color: Colors.text, textAlign: 'center', marginBottom: Spacing.sm },
-    modalSub: { ...Typography.body, color: Colors.textSoft, textAlign: 'center', marginBottom: Spacing.sm },
-    modalEmail: { ...Typography.bodyBold, color: Colors.text, textAlign: 'center' },
+    modalTitle: { fontSize: 20, fontWeight: '800', color: '#FAFAF9', textAlign: 'center', marginBottom: Spacing.sm },
+    modalSub: { fontSize: 14, color: '#78716C', textAlign: 'center', marginBottom: Spacing.sm },
+    modalEmail: { fontSize: 15, fontWeight: '700', color: '#FAFAF9', textAlign: 'center' },
     warningBox: {
-        backgroundColor: Colors.dangerLight, borderRadius: Radius.lg,
-        padding: Spacing.md, borderWidth: 1, borderColor: '#FECACA', marginTop: Spacing.md,
+        backgroundColor: '#EF444422', borderRadius: Radius.lg,
+        padding: Spacing.md, borderWidth: 1, borderColor: '#EF444444', marginTop: Spacing.md,
     },
-    warningText: { fontSize: 13, color: '#B91C1C', textAlign: 'center', lineHeight: 18 },
-    inputLabel: { fontSize: 13, fontWeight: '700', color: Colors.text, marginTop: Spacing.md, marginBottom: Spacing.xs },
-    inputHint: { fontSize: 11, color: Colors.textMuted, marginTop: 4 },
+    warningText: { fontSize: 13, color: '#FCA5A5', textAlign: 'center', lineHeight: 18 },
+    inputLabel: { fontSize: 12, fontWeight: '700', color: '#78716C', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: Spacing.md, marginBottom: Spacing.xs },
+    inputHint: { fontSize: 11, color: '#57534E', marginTop: 4 },
     input: {
-        backgroundColor: Colors.surfaceAlt, borderWidth: 1.5, borderColor: Colors.border,
+        backgroundColor: '#292524', borderWidth: 1.5, borderColor: '#3C3936',
         borderRadius: Radius.lg, padding: Spacing.md,
-        fontSize: 15, color: Colors.text,
+        fontSize: 15, color: '#FAFAF9',
     },
 });
