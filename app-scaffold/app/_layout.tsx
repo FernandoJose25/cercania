@@ -34,8 +34,9 @@ export default function RootLayout() {
   const { activeAlert, clearAlert } = useSOSAlert();
 
   // Nombre largo detectado (ej: email de Gmail como display_name)
+  // Solo activa DESPUÉS de que el perfil cargó completamente (no durante init)
   const displayName = profile?.display_name?.trim() ?? '';
-  const needsShortName = !!session && profile !== null && (displayName.length === 0 || displayName.length > 20);
+  const needsShortName = !!session && !initializing && profile !== null && displayName.length > 20;
 
   // Inicializar auth
   useEffect(() => {

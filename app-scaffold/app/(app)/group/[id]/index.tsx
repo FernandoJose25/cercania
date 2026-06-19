@@ -1,18 +1,8 @@
-// 📁 cercania/app-scaffold/app/(app)/group/[id]/index.tsx
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-    Modal,
-    ActivityIndicator,
-    Clipboard
+    ActivityIndicator, Alert, Clipboard, Modal, Pressable,
+    RefreshControl, ScrollView, Share, StyleSheet, Text,
+    TextInput, View
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button } from '../../../../src/components/ui/Button';
@@ -43,7 +33,7 @@ export default function GroupDetailScreen() {
             const sb = await getSupabase();
             const { data, error } = await sb
                 .from('group_members')
-                .select('user_id, role, nickname, joined_at, profiles(display_name, avatar_url)')
+                .select('user_id, role, joined_at, profiles(display_name, avatar_url)')
                 .eq('group_id', id);
             if (error) throw error;
             setMembers(data ?? []);
@@ -83,10 +73,7 @@ export default function GroupDetailScreen() {
         setSaving(true);
         try {
             const sb = await getSupabase();
-            const { error } = await sb
-                .from('groups')
-                .update({ name: newName.trim() })
-                .eq('id', id);
+            const { error } = await sb.from('groups').update({ name: newName.trim() }).eq('id', id);
             if (error) throw error;
             await loadGroups();
             setEditVisible(false);
@@ -101,28 +88,26 @@ export default function GroupDetailScreen() {
         setLoadingCode(true);
         try {
             const sb = await getSupabase();
-            // Buscar el código más reciente del grupo — el mismo que se mostró al crear
+            // Buscar código vigente (no expirado) en la tabla correcta
             const { data, error } = await sb
-                .from('invite_codes')
-                .select('code')
+                .from('group_invitations')
+                .select('code, expires_at')
                 .eq('group_id', id)
+                .gt('expires_at', new Date().toISOString())
                 .order('created_at', { ascending: false })
                 .limit(1)
-                .single();
+                .maybeSingle();
 
-            if (error && error.code !== 'PGRST116') throw error;
+            if (error) throw error;
 
             if (data?.code) {
                 setInviteCode(data.code);
             } else {
-                // Solo si el grupo nunca tuvo código, crear uno nuevo
-                const { data: newCode, error: insertError } = await sb
-                    .from('invite_codes')
-                    .insert({ group_id: id, is_active: true })
-                    .select('code')
-                    .single();
-                if (insertError) throw insertError;
-                setInviteCode(newCode?.code ?? null);
+                // No hay código vigente: generar uno nuevo vía RPC (respeta SECURITY DEFINER)
+                const { data: rpcData, error: rpcError } = await sb
+                    .rpc('create_group_invite', { p_group_id: id });
+                if (rpcError) throw rpcError;
+                setInviteCode(rpcData?.code ?? null);
             }
             setInviteVisible(true);
         } catch (e: any) {
@@ -136,18 +121,16 @@ export default function GroupDetailScreen() {
         if (!inviteCode) return;
         try {
             await Share.share({
-                message: `¡Únete a mi grupo "${group?.name}" en Cercanía!\n\nCódigo de invitación: *${inviteCode}*\n\nDescarga la app en: https://cercania.vercel.app`,
-                title: `Invitación al grupo ${group?.name}`,
+                message: `¡Únete a mi grupo "${group?.name}" en Cercanía!\n\nCódigo de invitación: *${inviteCode}*\n\nDescarga: https://cercania.vercel.app`,
+                title: `Invitación — ${group?.name}`,
             });
-        } catch (e: any) {
-            console.warn(e.message);
-        }
+        } catch { }
     };
 
     const handleCopyCode = () => {
         if (!inviteCode) return;
         Clipboard.setString(inviteCode);
-        Alert.alert('Copiado ✅', `El código "${inviteCode}" está en tu portapapeles.`);
+        Alert.alert('¡Copiado! 📋', `El código "${inviteCode}" está en tu portapapeles.`);
     };
 
     const isOwner = group?.owner_id === currentUserId;
@@ -167,147 +150,168 @@ export default function GroupDetailScreen() {
                 style={styles.scroll}
                 contentContainerStyle={styles.content}
                 refreshControl={<RefreshControl refreshing={loading} onRefresh={loadMembers} />}
+                showsVerticalScrollIndicator={false}
             >
-                {/* Header */}
-                <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
-                    <Text style={styles.backText}>← Volver</Text>
-                </Pressable>
+                {/* ── HEADER ── */}
+                <View style={styles.header}>
+                    <View style={styles.headerBg} />
+                    <View style={[styles.headerCircle, { backgroundColor: (group.color ?? Colors.primary) }]} />
 
-                {/* Info del grupo */}
-                <View style={styles.groupHeader}>
-                    <View style={[styles.groupEmoji, { backgroundColor: group.color + '22' }]}>
-                        <Text style={styles.groupEmojiText}>{group.emoji}</Text>
+                    <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+                        <Text style={styles.backIcon}>←</Text>
+                    </Pressable>
+
+                    <View style={styles.groupHero}>
+                        <View style={[styles.groupAvatarBox, { backgroundColor: (group.color ?? Colors.primary) + '33' }]}>
+                            <Text style={styles.groupAvatarEmoji}>{group.emoji}</Text>
+                        </View>
+                        <View style={styles.groupHeroInfo}>
+                            <Text style={styles.groupHeroName}>{group.name}</Text>
+                            <Text style={styles.groupHeroSub}>
+                                {loading ? '...' : `${members.length} miembro${members.length !== 1 ? 's' : ''}`}
+                            </Text>
+                        </View>
+                        {isOwner && (
+                            <Pressable
+                                hitSlop={12}
+                                style={styles.editGroupBtn}
+                                onPress={() => { setNewName(group.name); setEditVisible(true); }}
+                            >
+                                <Text style={styles.editGroupBtnText}>✏️</Text>
+                            </Pressable>
+                        )}
                     </View>
-                    <View style={styles.groupInfo}>
-                        <Text style={styles.groupName}>{group.name}</Text>
-                        <Text style={styles.groupSub}>{members.length} miembro{members.length !== 1 ? 's' : ''}</Text>
-                    </View>
-                    {isOwner && (
-                        <Pressable onPress={() => { setNewName(group.name); setEditVisible(true); }} hitSlop={10}>
-                            <Text style={styles.editIcon}>✏️</Text>
-                        </Pressable>
-                    )}
                 </View>
 
-                {/* Botón ver mapa */}
-                <Pressable
-                    style={styles.mapBtn}
-                    onPress={() => router.push({ pathname: '/(app)/map/[groupId]', params: { groupId: id } })}
-                >
-                    <Text style={styles.mapBtnIcon}>🗺️</Text>
-                    <View>
-                        <Text style={styles.mapBtnTitle}>Ver mapa en tiempo real</Text>
-                        <Text style={styles.mapBtnSub}>Mira dónde está cada miembro ahora</Text>
-                    </View>
-                    <Text style={styles.mapBtnArrow}>›</Text>
-                </Pressable>
+                {/* ── ACCIONES PRINCIPALES ── */}
+                <View style={styles.actionsGrid}>
+                    <Pressable
+                        style={[styles.actionBig, { borderColor: Colors.primary, backgroundColor: Colors.primaryLight }]}
+                        onPress={() => router.push({ pathname: '/(app)/map/[groupId]', params: { groupId: id } })}
+                    >
+                        <Text style={styles.actionBigEmoji}>🗺️</Text>
+                        <Text style={[styles.actionBigTitle, { color: Colors.primaryDark }]}>Ver mapa</Text>
+                        <Text style={[styles.actionBigSub, { color: Colors.primary }]}>Tiempo real</Text>
+                    </Pressable>
 
-                {/* Botón chat grupal */}
-                <Pressable
-                    style={[styles.mapBtn, { marginTop: 8 }]}
-                    onPress={() => router.push({ pathname: '/(app)/group/[id]/chat', params: { id } })}
-                >
-                    <Text style={styles.mapBtnIcon}>💬</Text>
-                    <View>
-                        <Text style={styles.mapBtnTitle}>Chat del grupo</Text>
-                        <Text style={styles.mapBtnSub}>Mensajes rápidos de ubicación</Text>
-                    </View>
-                    <Text style={styles.mapBtnArrow}>›</Text>
-                </Pressable>
-
-                {/* Botón zonas seguras del grupo */}
-                <Pressable
-                    style={[styles.mapBtn, { marginTop: 8, borderColor: '#F59E0B', backgroundColor: '#FFFBEB' }]}
-                    onPress={() => router.push({ pathname: '/(app)/settings/geofences', params: { groupId: id, groupName: group.name } })}
-                >
-                    <Text style={styles.mapBtnIcon}>📍</Text>
-                    <View>
-                        <Text style={[styles.mapBtnTitle, { color: '#92400E' }]}>Zonas seguras del grupo</Text>
-                        <Text style={[styles.mapBtnSub, { color: '#B45309' }]}>Casa, colegio, trabajo...</Text>
-                    </View>
-                    <Text style={[styles.mapBtnArrow, { color: '#F59E0B' }]}>›</Text>
-                </Pressable>
-
-                {/* Botón invitar */}
-                <Pressable
-                    style={[styles.mapBtn, { marginTop: 0, marginBottom: Spacing.xl, borderColor: '#8B5CF6', backgroundColor: '#F5F3FF' }]}
-                    onPress={loadInviteCode}
-                    disabled={loadingCode}
-                >
-                    <Text style={styles.mapBtnIcon}>🔗</Text>
-                    <View>
-                        <Text style={[styles.mapBtnTitle, { color: '#6D28D9' }]}>
-                            {loadingCode ? 'Cargando código...' : 'Invitar al grupo'}
+                    <Pressable
+                        style={[styles.actionBig, { borderColor: '#6D28D9', backgroundColor: '#F5F3FF' }]}
+                        onPress={loadInviteCode}
+                        disabled={loadingCode}
+                    >
+                        {loadingCode
+                            ? <ActivityIndicator color="#7C3AED" style={{ marginBottom: 4 }} />
+                            : <Text style={styles.actionBigEmoji}>🔗</Text>
+                        }
+                        <Text style={[styles.actionBigTitle, { color: '#4C1D95' }]}>
+                            {loadingCode ? 'Cargando...' : 'Invitar'}
                         </Text>
-                        <Text style={[styles.mapBtnSub, { color: '#7C3AED' }]}>Ver código y compartir por WhatsApp</Text>
-                    </View>
-                    {loadingCode
-                        ? <ActivityIndicator size="small" color="#7C3AED" style={{ marginLeft: 'auto' }} />
-                        : <Text style={[styles.mapBtnArrow, { color: '#7C3AED' }]}>›</Text>
-                    }
-                </Pressable>
+                        <Text style={[styles.actionBigSub, { color: '#7C3AED' }]}>Ver código</Text>
+                    </Pressable>
+                </View>
 
-                {/* Lista de miembros */}
-                <Text style={styles.sectionTitle}>Miembros</Text>
+                {/* ── ACCIONES SECUNDARIAS ── */}
+                <View style={styles.secondaryGrid}>
+                    <Pressable
+                        style={styles.secondaryCard}
+                        onPress={() => router.push({ pathname: '/(app)/group/[id]/chat', params: { id } })}
+                    >
+                        <Text style={styles.secondaryEmoji}>💬</Text>
+                        <Text style={styles.secondaryTitle}>Chat</Text>
+                        <Text style={styles.secondarySub}>Mensajes del grupo</Text>
+                    </Pressable>
+
+                    <Pressable
+                        style={styles.secondaryCard}
+                        onPress={() => router.push({ pathname: '/(app)/settings/geofences', params: { groupId: id, groupName: group.name } })}
+                    >
+                        <Text style={styles.secondaryEmoji}>📍</Text>
+                        <Text style={styles.secondaryTitle}>Zonas</Text>
+                        <Text style={styles.secondarySub}>Lugares seguros</Text>
+                    </Pressable>
+
+                    <Pressable
+                        style={styles.secondaryCard}
+                        onPress={() => router.push({ pathname: '/(app)/map/[groupId]', params: { groupId: id } })}
+                    >
+                        <Text style={styles.secondaryEmoji}>🆘</Text>
+                        <Text style={styles.secondaryTitle}>SOS</Text>
+                        <Text style={styles.secondarySub}>Ver alertas</Text>
+                    </Pressable>
+                </View>
+
+                {/* ── MIEMBROS ── */}
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionLabel}>MIEMBROS</Text>
+                    <Text style={styles.sectionCount}>{loading ? '...' : members.length}</Text>
+                </View>
 
                 {loading ? (
-                    <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing.lg }} />
+                    <ActivityIndicator color={Colors.primary} style={{ marginVertical: Spacing.xl }} />
                 ) : (
                     <View style={styles.memberList}>
                         {members.map((m: any) => {
                             const isMe = m.user_id === currentUserId;
                             const isGroupOwner = m.user_id === group.owner_id;
+                            const name = m.profiles?.display_name ?? 'Usuario';
+                            const initial = name[0]?.toUpperCase() ?? '?';
                             return (
-                                <View key={m.user_id} style={styles.memberRow}>
-                                    <View style={styles.memberAvatar}>
-                                        <Text style={styles.memberInitial}>
-                                            {m.profiles?.display_name?.[0]?.toUpperCase() ?? '?'}
+                                <View key={m.user_id} style={[styles.memberRow, isMe && styles.memberRowMe]}>
+                                    <View style={[styles.memberAvatar, { backgroundColor: isGroupOwner ? Colors.primary : Colors.surfaceAlt }]}>
+                                        <Text style={[styles.memberInitial, !isGroupOwner && { color: Colors.text }]}>
+                                            {initial}
                                         </Text>
                                     </View>
                                     <View style={styles.memberInfo}>
                                         <Text style={styles.memberName}>
-                                            {m.profiles?.display_name ?? 'Usuario'}
-                                            {isMe ? ' (Tú)' : ''}
+                                            {name}{isMe ? ' · Tú' : ''}
                                         </Text>
                                         <Text style={styles.memberRole}>
-                                            {isGroupOwner ? '👑 Admin' : '👤 Miembro'}
+                                            {isGroupOwner ? '👑 Administrador' : '👤 Miembro'}
                                         </Text>
                                     </View>
+                                    {isMe && (
+                                        <View style={styles.meChip}>
+                                            <Text style={styles.meChipText}>Yo</Text>
+                                        </View>
+                                    )}
                                 </View>
                             );
                         })}
                     </View>
                 )}
 
-                {/* Salir del grupo */}
+                {/* ── ZONA PELIGROSA ── */}
                 <View style={styles.dangerZone}>
-                    <Button
-                        title="Salir del grupo"
-                        variant="danger"
-                        fullWidth
-                        onPress={handleLeave}
-                    />
+                    <Text style={styles.dangerLabel}>ZONA PELIGROSA</Text>
+                    <Pressable style={styles.leaveBtn} onPress={handleLeave}>
+                        <Text style={styles.leaveIcon}>🚪</Text>
+                        <Text style={styles.leaveText}>Salir del grupo</Text>
+                        <Text style={styles.leaveArrow}>›</Text>
+                    </Pressable>
                 </View>
+
+                <View style={{ height: 40 }} />
             </ScrollView>
 
-            {/* Modal código de invitación */}
+            {/* ── MODAL CÓDIGO DE INVITACIÓN ── */}
             <Modal visible={inviteVisible} transparent animationType="slide">
-                <View style={styles.overlay}>
-                    <View style={styles.modal}>
-                        <Text style={styles.modalTitle}>🔗 Código de invitación</Text>
-                        <Text style={[Typography.caption, { color: Colors.textSoft, marginBottom: Spacing.lg }]}>
-                            Comparte este código con quien quieras invitar al grupo "{group?.name}".
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalSheet}>
+                        <View style={styles.modalHandle} />
+                        <Text style={styles.modalTitle}>Código de invitación</Text>
+                        <Text style={styles.modalSub}>
+                            Comparte este código con quien quieras invitar a <Text style={{ fontWeight: '700' }}>{group?.name}</Text>. Expira en 48 h.
                         </Text>
 
-                        {/* Código grande */}
                         <Pressable onPress={handleCopyCode} style={styles.codeBox}>
                             <Text style={styles.codeText}>{inviteCode}</Text>
-                            <Text style={styles.codeCopy}>Toca para copiar 📋</Text>
+                            <Text style={styles.codeCopyHint}>Toca para copiar 📋</Text>
                         </Pressable>
 
-                        {/* Botón compartir */}
-                        <Pressable style={styles.shareBtn} onPress={handleShareCode}>
-                            <Text style={styles.shareBtnText}>📤 Compartir por WhatsApp / SMS</Text>
+                        <Pressable style={styles.waBtn} onPress={handleShareCode}>
+                            <Text style={styles.waBtnIcon}>📤</Text>
+                            <Text style={styles.waBtnText}>Compartir por WhatsApp / SMS</Text>
                         </Pressable>
 
                         <Button title="Cerrar" variant="ghost" fullWidth
@@ -317,13 +321,13 @@ export default function GroupDetailScreen() {
                 </View>
             </Modal>
 
-            {/* Modal editar nombre */}
+            {/* ── MODAL EDITAR NOMBRE ── */}
             <Modal visible={editVisible} transparent animationType="fade">
-                <View style={styles.overlay}>
-                    <View style={styles.modal}>
-                        <Text style={styles.modalTitle}>Editar nombre</Text>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalSheet, { borderRadius: Radius.xl }]}>
+                        <Text style={styles.modalTitle}>Editar nombre del grupo</Text>
                         <TextInput
-                            style={styles.modalInput}
+                            style={styles.nameInput}
                             value={newName}
                             onChangeText={setNewName}
                             maxLength={40}
@@ -343,73 +347,151 @@ export default function GroupDetailScreen() {
 
 const styles = StyleSheet.create({
     scroll: { flex: 1, backgroundColor: Colors.bg },
-    content: { padding: Spacing.xl, paddingBottom: Spacing.xxxl },
+    content: { paddingBottom: Spacing.xxxl },
     centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md },
     errorText: { ...Typography.body, color: Colors.danger },
 
-    back: { marginBottom: Spacing.lg },
-    backText: { ...Typography.body, color: Colors.textSoft },
-
-    groupHeader: {
-        flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-        backgroundColor: Colors.surface, borderRadius: Radius.lg,
-        padding: Spacing.lg, marginBottom: Spacing.md, ...Shadows.card
+    // ── HEADER ──
+    header: {
+        paddingHorizontal: Spacing.xl, paddingTop: 52,
+        paddingBottom: Spacing.xxl, position: 'relative', overflow: 'hidden',
     },
-    groupEmoji: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-    groupEmojiText: { fontSize: 30 },
-    groupInfo: { flex: 1 },
-    groupName: { ...Typography.h2, color: Colors.text },
-    groupSub: { ...Typography.caption, color: Colors.textSoft, marginTop: 2 },
-    editIcon: { fontSize: 20 },
-
-    mapBtn: {
-        flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-        backgroundColor: Colors.primaryLight, borderRadius: Radius.lg,
-        padding: Spacing.lg, marginBottom: Spacing.xl,
-        borderWidth: 1.5, borderColor: Colors.primary
+    headerBg: {
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: '#1C1917',
+        borderBottomLeftRadius: 36, borderBottomRightRadius: 36,
     },
-    mapBtnIcon: { fontSize: 28 },
-    mapBtnTitle: { ...Typography.bodyBold, color: Colors.primaryDark },
-    mapBtnSub: { ...Typography.caption, color: Colors.primary, marginTop: 2 },
-    mapBtnArrow: { fontSize: 24, color: Colors.primary, marginLeft: 'auto' },
+    headerCircle: {
+        position: 'absolute', width: 180, height: 180, borderRadius: 90,
+        opacity: 0.1, top: -50, right: -30,
+    },
+    backBtn: {
+        width: 40, height: 40, borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+        alignItems: 'center', justifyContent: 'center',
+        marginBottom: Spacing.xl,
+    },
+    backIcon: { fontSize: 18, color: '#fff', fontWeight: '700' },
+    groupHero: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+    groupAvatarBox: { width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    groupAvatarEmoji: { fontSize: 34 },
+    groupHeroInfo: { flex: 1 },
+    groupHeroName: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+    groupHeroSub: { fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 3 },
+    editGroupBtn: {
+        width: 38, height: 38, borderRadius: 12,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+        alignItems: 'center', justifyContent: 'center',
+    },
+    editGroupBtnText: { fontSize: 18 },
 
-    sectionTitle: { ...Typography.h3, color: Colors.text, marginBottom: Spacing.md },
-    memberList: { gap: Spacing.sm, marginBottom: Spacing.xl },
+    // ── ACCIONES ──
+    actionsGrid: {
+        flexDirection: 'row', gap: Spacing.md,
+        marginHorizontal: Spacing.xl, marginTop: Spacing.lg,
+    },
+    actionBig: {
+        flex: 1, borderRadius: Radius.xl, borderWidth: 1.5,
+        padding: Spacing.lg, alignItems: 'center', gap: 4,
+        ...Shadows.card,
+    },
+    actionBigEmoji: { fontSize: 32, marginBottom: 4 },
+    actionBigTitle: { fontSize: 15, fontWeight: '800' },
+    actionBigSub: { fontSize: 12, fontWeight: '500' },
+
+    secondaryGrid: {
+        flexDirection: 'row', gap: Spacing.sm,
+        marginHorizontal: Spacing.xl, marginTop: Spacing.sm,
+    },
+    secondaryCard: {
+        flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.xl,
+        padding: Spacing.md, alignItems: 'center', gap: 3,
+        borderWidth: 1, borderColor: Colors.border, ...Shadows.card,
+    },
+    secondaryEmoji: { fontSize: 26 },
+    secondaryTitle: { fontSize: 13, fontWeight: '700', color: Colors.text },
+    secondarySub: { fontSize: 11, color: Colors.textMuted },
+
+    // ── SECTION ──
+    sectionHeader: {
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        marginHorizontal: Spacing.xl, marginTop: Spacing.xxl, marginBottom: Spacing.md,
+    },
+    sectionLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2, color: Colors.textMuted },
+    sectionCount: { fontSize: 13, fontWeight: '700', color: Colors.primary },
+
+    // ── MIEMBROS ──
+    memberList: { marginHorizontal: Spacing.xl, gap: Spacing.sm },
     memberRow: {
         flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
-        backgroundColor: Colors.surface, borderRadius: Radius.lg,
-        padding: Spacing.md, ...Shadows.card
+        backgroundColor: Colors.surface, borderRadius: Radius.xl,
+        padding: Spacing.md, ...Shadows.card,
+        borderWidth: 1, borderColor: Colors.border,
     },
+    memberRowMe: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
     memberAvatar: {
-        width: 44, height: 44, borderRadius: 22,
-        backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center'
+        width: 46, height: 46, borderRadius: 15,
+        alignItems: 'center', justifyContent: 'center',
     },
-    memberInitial: { color: '#fff', ...Typography.h3 },
+    memberInitial: { fontSize: 18, fontWeight: '800', color: '#fff' },
     memberInfo: { flex: 1 },
-    memberName: { ...Typography.bodyBold, color: Colors.text },
-    memberRole: { ...Typography.caption, color: Colors.textSoft, marginTop: 2 },
+    memberName: { fontSize: 15, fontWeight: '700', color: Colors.text },
+    memberRole: { fontSize: 12, color: Colors.textSoft, marginTop: 2 },
+    meChip: {
+        backgroundColor: Colors.primary, borderRadius: Radius.pill,
+        paddingHorizontal: 10, paddingVertical: 4,
+    },
+    meChipText: { fontSize: 11, fontWeight: '800', color: '#fff' },
 
-    dangerZone: { marginTop: Spacing.xl },
+    // ── ZONA PELIGROSA ──
+    dangerZone: {
+        marginHorizontal: Spacing.xl, marginTop: Spacing.xxl,
+        backgroundColor: '#FFF1F2', borderRadius: Radius.xl,
+        padding: Spacing.lg, borderWidth: 1.5, borderColor: '#FFD5D5',
+    },
+    dangerLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1, color: Colors.danger, marginBottom: Spacing.md },
+    leaveBtn: {
+        flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+        backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md,
+    },
+    leaveIcon: { fontSize: 20 },
+    leaveText: { flex: 1, fontSize: 15, fontWeight: '700', color: Colors.danger },
+    leaveArrow: { fontSize: 22, color: Colors.danger },
+
+    // ── MODALES ──
+    modalOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.55)',
+        justifyContent: 'flex-end',
+    },
+    modalSheet: {
+        backgroundColor: Colors.surface,
+        borderTopLeftRadius: 28, borderTopRightRadius: 28,
+        padding: Spacing.xl, paddingBottom: 36,
+    },
+    modalHandle: {
+        width: 40, height: 4, backgroundColor: Colors.border,
+        borderRadius: 2, alignSelf: 'center', marginBottom: Spacing.lg,
+    },
+    modalTitle: { ...Typography.h2, color: Colors.text, marginBottom: Spacing.sm, textAlign: 'center' },
+    modalSub: { ...Typography.body, color: Colors.textSoft, textAlign: 'center', marginBottom: Spacing.xl },
     codeBox: {
         backgroundColor: '#F5F3FF', borderRadius: Radius.xl,
         padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.lg,
-        borderWidth: 2, borderColor: '#8B5CF6', borderStyle: 'dashed',
+        borderWidth: 2.5, borderColor: '#8B5CF6', borderStyle: 'dashed',
     },
-    codeText: { fontSize: 36, fontWeight: '900', color: '#6D28D9', letterSpacing: 6 },
-    codeCopy: { fontSize: 12, color: '#7C3AED', marginTop: 6 },
-    shareBtn: {
+    codeText: { fontSize: 40, fontWeight: '900', color: '#6D28D9', letterSpacing: 8 },
+    codeCopyHint: { fontSize: 12, color: '#7C3AED', marginTop: 8 },
+    waBtn: {
         backgroundColor: '#25D366', borderRadius: Radius.lg,
-        paddingVertical: 14, alignItems: 'center', marginBottom: Spacing.sm,
+        paddingVertical: 14, flexDirection: 'row',
+        alignItems: 'center', justifyContent: 'center', gap: 8,
     },
-    shareBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: Spacing.xl },
-    modal: { backgroundColor: Colors.surface, borderRadius: Radius.xl, padding: Spacing.xl, width: '100%' },
-    modalTitle: { ...Typography.h2, color: Colors.text, marginBottom: Spacing.lg },
-    modalInput: {
+    waBtnIcon: { fontSize: 18 },
+    waBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+    nameInput: {
         backgroundColor: Colors.surfaceAlt, borderWidth: 1.5, borderColor: Colors.border,
-        borderRadius: Radius.lg, padding: Spacing.lg, ...Typography.body, color: Colors.text,
-        marginBottom: Spacing.lg
+        borderRadius: Radius.lg, padding: Spacing.lg,
+        fontSize: 16, color: Colors.text, marginBottom: Spacing.lg,
     },
-    modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm }
+    modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
 });

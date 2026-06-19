@@ -75,6 +75,37 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ---------------------------------------------------------------------
+-- create_group_invite: genera un nuevo código para un grupo existente
+-- Solo puede usarlo el owner/admin del grupo.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION create_group_invite(p_group_id UUID)
+RETURNS JSON AS $$
+DECLARE
+  v_user UUID := auth.uid();
+  v_code TEXT;
+BEGIN
+  IF v_user IS NULL THEN RAISE EXCEPTION 'No autenticado'; END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM group_members
+    WHERE group_id = p_group_id AND user_id = v_user AND role IN ('owner', 'admin')
+  ) THEN
+    RAISE EXCEPTION 'Solo el administrador puede generar códigos';
+  END IF;
+
+  LOOP
+    v_code := generate_invitation_code();
+    EXIT WHEN NOT EXISTS (SELECT 1 FROM group_invitations WHERE code = v_code);
+  END LOOP;
+
+  INSERT INTO group_invitations (code, group_id, created_by, max_uses)
+  VALUES (v_code, p_group_id, v_user, 50);
+
+  RETURN json_build_object('code', v_code);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ---------------------------------------------------------------------
 -- toggle_invisible_mode: activar/desactivar invisibilidad
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION toggle_invisible_mode(p_duration_minutes INT DEFAULT NULL)
