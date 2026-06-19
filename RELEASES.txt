@@ -80,6 +80,10 @@ PASO 9 — Verificar
 
 VERSIONES PUBLICADAS
 ============================================================
+v0.1.10 — 2026-06-19 — Marcadores premium + Heading GPS
+  APK: https://github.com/FernandoJose25/cercania/releases/download/v0.1.10/cercania-v0.1.10.apk
+  Notas: Anillo amber pulsante (Life360), triángulo de dirección GPS, avatares con foto/iniciales, dot de posición cruda
+
 v0.1.0 — 2026-06-11 — Primera versión pública
   APK: (pendiente — build en progreso)
   Notas: GPS en tiempo real, grupos, SOS, geofences, biometría
