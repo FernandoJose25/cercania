@@ -8,8 +8,8 @@ import { gpsKalman } from '../utils/kalman';
 import { notifyLowBattery } from './notifications.service';
 import { checkGeofenceArrivals } from './checkin.service';
 // Callback registrado por el store para recibir la posición filtrada sin crear dependencia circular
-let _onFilteredLocation: ((loc: { latitude: number; longitude: number }) => void) | null = null;
-export function registerFilteredLocationCallback(cb: (loc: { latitude: number; longitude: number }) => void) {
+let _onFilteredLocation: ((loc: { latitude: number; longitude: number; heading?: number | null }) => void) | null = null;
+export function registerFilteredLocationCallback(cb: (loc: { latitude: number; longitude: number; heading?: number | null }) => void) {
   _onFilteredLocation = cb;
 }
 
@@ -102,7 +102,7 @@ async function sendLocation(location: Location.LocationObject): Promise<void> {
 
     // Actualizar posición filtrada en el store (sin subir a Supabase)
     if (_onFilteredLocation) {
-      try { _onFilteredLocation({ latitude: filtered.lat, longitude: filtered.lng }); } catch (_) { }
+      try { _onFilteredLocation({ latitude: filtered.lat, longitude: filtered.lng, heading }); } catch (_) { }
     }
 
     // Alerta de batería baja al grupo (solo una vez por sesión hasta recargar)

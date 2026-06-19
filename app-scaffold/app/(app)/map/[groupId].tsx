@@ -2,6 +2,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +15,7 @@ import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import MapView, { AnimatedRegion, Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useGroupLive } from '../../../src/hooks/useGroupLive';
 import { useAuth } from '../../../src/store/auth';
+import { useTracking } from '../../../src/store/tracking';
 import { Colors, Radius, Shadows, Spacing, Typography, Tracking } from '../../../src/lib/theme';
 import { lastSeenShort, batteryIcon, getInitials } from '../../../src/utils/format';
 import {
@@ -20,9 +24,101 @@ import {
   getCurrentLocation
 } from '../../../src/services/tracking.service';
 
+// Componente para el marcador del usuario actual (doble capa: dot GPS crudo + avatar filtrado)
+function MyMarkerInner({
+  rawLat, rawLng,
+  filteredLat, filteredLng,
+  heading, avatarUrl, initials, hasSOS
+}: {
+  rawLat: number; rawLng: number;
+  filteredLat: number; filteredLng: number;
+  heading?: number | null;
+  avatarUrl?: string | null;
+  initials: string;
+  hasSOS: boolean;
+}) {
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.18, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, []);
+
+  const hasHeading = heading != null && heading >= 0;
+
+  return (
+    <View style={{ alignItems: 'center' }}>
+      {/* Pulse ring */}
+      <Animated.View style={[
+        myMarker.pulseRing,
+        { transform: [{ scale: pulse }] }
+      ]} />
+      {/* Triángulo de dirección */}
+      {hasHeading && (
+        <View style={[myMarker.directionWrap, {
+          transform: [{ rotate: `${heading}deg` }]
+        }]}>
+          <View style={myMarker.directionTriangle} />
+        </View>
+      )}
+      {/* Avatar filtrado (marcador principal) */}
+      <View style={myMarker.avatarBorder}>
+        {hasSOS ? (
+          <View style={[myMarker.avatarInner, { backgroundColor: Colors.danger }]}>
+            <Text style={{ fontSize: 22 }}>🆘</Text>
+          </View>
+        ) : avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={myMarker.avatarInner} />
+        ) : (
+          <View style={[myMarker.avatarInner, { backgroundColor: Colors.primary }]}>
+            <Text style={myMarker.avatarInitials}>{initials}</Text>
+          </View>
+        )}
+      </View>
+      {/* Dot GPS crudo — posición sin filtrar (semitransparente, más pequeño) */}
+    </View>
+  );
+}
+
+// Marcador para otros miembros (sin doble capa, más ligero)
+function MemberMarkerInner({
+  initials, avatarUrl, hasSOS, isSelected, isStale, pinColor
+}: {
+  initials: string; avatarUrl?: string | null;
+  hasSOS: boolean; isSelected: boolean; isStale: boolean; pinColor: string;
+}) {
+  return (
+    <View style={memberMarker.wrapper}>
+      {isSelected && <View style={[memberMarker.selectedRing, { borderColor: pinColor }]} />}
+      <View style={[memberMarker.border, { borderColor: pinColor }]}>
+        {hasSOS ? (
+          <View style={[memberMarker.inner, { backgroundColor: Colors.danger }]}>
+            <Text style={{ fontSize: 18 }}>🆘</Text>
+          </View>
+        ) : avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={memberMarker.inner} />
+        ) : (
+          <View style={[memberMarker.inner, { backgroundColor: pinColor }]}>
+            <Text style={memberMarker.initials}>{initials}</Text>
+          </View>
+        )}
+      </View>
+      <View style={[styles.pinTail, { borderTopColor: pinColor }]} />
+    </View>
+  );
+}
+
 export default function MapScreen() {
   const { groupId } = useLocalSearchParams();
   const currentUserId = useAuth(s => s.user?.id);
+  const currentProfile = useAuth(s => s.profile);
+  const filteredLocation = useTracking(s => s.filteredLocation);
   const { snapshot, loading, error, refresh } = useGroupLive(groupId ?? null);
   const mapRef = useRef(null);
   const [selectedMemberId, setSelectedMemberId] = useState(null);
@@ -205,48 +301,74 @@ export default function MapScreen() {
             const isSelected = m.user_id === selectedMemberId;
             const pinColor = hasSOS ? Colors.danger : isMe ? Colors.primary : isStale ? Colors.mapStale : Colors.accent;
 
-            const coord = animatedCoords[m.user_id] ?? {
-              latitude: m.location.latitude,
-              longitude: m.location.longitude,
-            };
+            // Para mi marcador: usar posición filtrada del store si está disponible
+            const displayLat = isMe && filteredLocation ? filteredLocation.latitude : m.location.latitude;
+            const displayLng = isMe && filteredLocation ? filteredLocation.longitude : m.location.longitude;
+            const displayHeading = isMe && filteredLocation?.heading != null
+              ? filteredLocation.heading
+              : m.location.heading;
+
+            const coord = animatedCoords[m.user_id] ?? { latitude: displayLat, longitude: displayLng };
 
             return (
-              <Marker.Animated
-                key={m.user_id}
-                coordinate={coord}
-                onPress={() => setSelectedMemberId(m.user_id)}
-                zIndex={isMe ? 10 : isSelected ? 9 : 5}
-                tracksViewChanges={false}
-                anchor={{ x: 0.5, y: 1 }}
-              >
-                <View style={styles.pinWrapper}>
-                  {isSelected && (
-                    <View style={[styles.selectedRing, { borderColor: pinColor }]} />
+              <React.Fragment key={m.user_id}>
+                {/* Dot GPS crudo — solo visible para el usuario actual */}
+                {isMe && filteredLocation && (
+                  <Marker
+                    coordinate={{ latitude: m.location.latitude, longitude: m.location.longitude }}
+                    anchor={{ x: 0.5, y: 0.5 }}
+                    zIndex={8}
+                    tracksViewChanges={false}
+                  >
+                    <View style={styles.rawDot} />
+                  </Marker>
+                )}
+                {/* Marcador principal con avatar filtrado */}
+                <Marker.Animated
+                  coordinate={coord}
+                  onPress={() => setSelectedMemberId(m.user_id)}
+                  zIndex={isMe ? 10 : isSelected ? 9 : 5}
+                  tracksViewChanges={isMe}
+                  anchor={{ x: 0.5, y: isMe ? 0.5 : 1 }}
+                >
+                  {isMe ? (
+                    <MyMarkerInner
+                      rawLat={m.location.latitude}
+                      rawLng={m.location.longitude}
+                      filteredLat={displayLat}
+                      filteredLng={displayLng}
+                      heading={displayHeading}
+                      avatarUrl={currentProfile?.avatar_url}
+                      initials={getInitials(m.profile.display_name)}
+                      hasSOS={hasSOS}
+                    />
+                  ) : (
+                    <View>
+                      <MemberMarkerInner
+                        initials={getInitials(m.profile.display_name)}
+                        avatarUrl={m.profile.avatar_url}
+                        hasSOS={hasSOS}
+                        isSelected={isSelected}
+                        isStale={isStale}
+                        pinColor={pinColor}
+                      />
+                      <View style={[styles.pinLabel, isMe && { backgroundColor: Colors.primaryLight, borderColor: Colors.primary }]}>
+                        <Text style={styles.pinLabelName} numberOfLines={1}>
+                          {m.profile.display_name.split(' ')[0]}
+                        </Text>
+                        {m.location.battery_level != null && (
+                          <Text style={styles.pinLabelBattery}>
+                            {batteryIcon(m.location.battery_level, m.location.is_charging)} {m.location.battery_level}%
+                          </Text>
+                        )}
+                      </View>
+                      {isStale && (
+                        <Text style={styles.staleText}>{lastSeenShort(m.location.updated_at)}</Text>
+                      )}
+                    </View>
                   )}
-                  <View style={[
-                    styles.pinBubble,
-                    { backgroundColor: pinColor, width: isMe ? 52 : 44, height: isMe ? 52 : 44, borderRadius: isMe ? 26 : 22 }
-                  ]}>
-                    <Text style={[styles.pinInitials, { fontSize: isMe ? 18 : 15 }]}>
-                      {hasSOS ? '🆘' : getInitials(m.profile.display_name)}
-                    </Text>
-                  </View>
-                  <View style={[styles.pinTail, { borderTopColor: pinColor }]} />
-                  <View style={[styles.pinLabel, isMe && { backgroundColor: Colors.primaryLight, borderColor: Colors.primary }]}>
-                    <Text style={styles.pinLabelName} numberOfLines={1}>
-                      {isMe ? 'Yo' : m.profile.display_name.split(' ')[0]}
-                    </Text>
-                    {m.location.battery_level != null && (
-                      <Text style={styles.pinLabelBattery}>
-                        {batteryIcon(m.location.battery_level, m.location.is_charging)} {m.location.battery_level}%
-                      </Text>
-                    )}
-                  </View>
-                  {isStale && !isMe && (
-                    <Text style={styles.staleText}>{lastSeenShort(m.location.updated_at)}</Text>
-                  )}
-                </View>
-              </Marker.Animated>
+                </Marker.Animated>
+              </React.Fragment>
             );
           })}
       </MapView>
@@ -370,4 +492,63 @@ const styles = StyleSheet.create({
   },
   geofenceLabelEmoji: { fontSize: 14 },
   geofenceLabelText: { fontSize: 11, fontWeight: '700', color: '#92400E', flexShrink: 1 },
+  // Dot GPS crudo (semitransparente, posición sin filtrar)
+  rawDot: {
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: 'rgba(245,158,11,0.35)',
+    borderWidth: 1.5, borderColor: 'rgba(245,158,11,0.6)',
+  },
+});
+
+// Estilos del marcador "Yo" con doble capa
+const myMarker = StyleSheet.create({
+  pulseRing: {
+    position: 'absolute',
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(245,158,11,0.18)',
+    borderWidth: 2, borderColor: 'rgba(245,158,11,0.45)',
+  },
+  directionWrap: {
+    position: 'absolute',
+    top: -24,
+    alignItems: 'center',
+  },
+  directionTriangle: {
+    width: 0, height: 0,
+    borderLeftWidth: 6, borderRightWidth: 6, borderBottomWidth: 14,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent',
+    borderBottomColor: '#F59E0B',
+  },
+  avatarBorder: {
+    width: 56, height: 56, borderRadius: 28,
+    borderWidth: 3, borderColor: '#F59E0B',
+    overflow: 'hidden',
+    ...Shadows.floating,
+  },
+  avatarInner: {
+    width: 50, height: 50, borderRadius: 25,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.primary,
+  },
+  avatarInitials: { color: '#fff', fontWeight: '800', fontSize: 18 },
+});
+
+// Estilos del marcador de otros miembros
+const memberMarker = StyleSheet.create({
+  wrapper: { alignItems: 'center' },
+  selectedRing: {
+    position: 'absolute', width: 60, height: 60, borderRadius: 30,
+    borderWidth: 2.5, top: -8, opacity: 0.4,
+  },
+  border: {
+    width: 46, height: 46, borderRadius: 23,
+    borderWidth: 2.5, overflow: 'hidden',
+    ...Shadows.floating,
+  },
+  inner: {
+    width: 41, height: 41, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.accent,
+  },
+  initials: { color: '#fff', fontWeight: '800', fontSize: 15 },
 });
