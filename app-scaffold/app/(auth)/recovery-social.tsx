@@ -13,22 +13,21 @@ import { Button } from '../../src/components/ui/Button';
 import { Colors, Radius, Spacing, Typography } from '../../src/lib/theme';
 import { getSupabase } from '../../src/lib/supabase';
 
-type Step = 'email' | 'waiting' | 'panic';
+type Step = 'email' | 'waiting';
 
 export default function RecoverySocialScreen() {
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [requestId, setRequestId] = useState('');
 
   const startRecovery = async () => {
     if (!email.trim()) return;
     setLoading(true);
     try {
       const sb = await getSupabase();
-      const { data, error } = await sb.rpc('create_recovery_request', { p_email: email.trim().toLowerCase() });
+      // La respuesta es la misma exista o no la cuenta, para no revelar qué correos están registrados.
+      const { error } = await sb.rpc('create_recovery_request', { p_email: email.trim().toLowerCase() });
       if (error) throw error;
-      setRequestId(data.request_id);
       setStep('waiting');
     } catch (e: any) {
       Alert.alert('Error', e.message);
@@ -37,29 +36,15 @@ export default function RecoverySocialScreen() {
     }
   };
 
-  const panicCancel = async () => {
+  // Cancelar una recuperación exige sesión: sin ella, cualquiera que supiera
+  // el correo podía bloquear la recuperación de otra persona.
+  const showPanicHelp = () => {
     Alert.alert(
-      '¿Cancelar recuperación?',
-      'Si alguien está intentando acceder a tu cuenta sin tu permiso, esto lo bloqueará.',
+      '¿Alguien intenta entrar a tu cuenta?',
+      'Inicia sesión y cancélala en Ajustes → Contactos de confianza. Si no recuerdas tu contraseña, restablécela con tu correo.',
       [
-        { text: 'Volver', style: 'cancel' },
-        {
-          text: 'Sí, cancelar',
-          style: 'destructive',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const sb = await getSupabase();
-              await sb.rpc('panic_cancel_recovery', { p_email: email.trim().toLowerCase() });
-              Alert.alert('Cancelado', 'La recuperación fue bloqueada. Tu cuenta está segura.');
-              router.replace('/(auth)/login');
-            } catch (e: any) {
-              Alert.alert('Error', e.message);
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
+        { text: 'Cerrar', style: 'cancel' },
+        { text: 'Iniciar sesión', onPress: () => router.replace('/(auth)/login') }
       ]
     );
   };
@@ -70,18 +55,13 @@ export default function RecoverySocialScreen() {
         <Text style={styles.waitingIcon}>⏳</Text>
         <Text style={styles.waitingTitle}>Solicitud enviada</Text>
         <Text style={styles.waitingText}>
-          Tus contactos de confianza han sido notificados. Necesitas que al menos 3 aprueben tu solicitud.
+          Si ese correo tiene una cuenta con al menos 3 contactos de confianza, la solicitud quedó abierta. Necesitas que 3 la aprueben.
         </Text>
         <View style={styles.waitingSteps}>
           <Text style={styles.stepItem}>1️⃣ Contacta a tus contactos de confianza personalmente</Text>
           <Text style={styles.stepItem}>2️⃣ Pídeles que abran Cercanía y aprueben tu solicitud</Text>
           <Text style={styles.stepItem}>3️⃣ Espera 48 horas después de la última aprobación</Text>
           <Text style={styles.stepItem}>4️⃣ Recibirás un enlace para crear nueva contraseña</Text>
-        </View>
-        <View style={styles.panicBox}>
-          <Text style={styles.panicTitle}>¿No fuiste tú quien inició esto?</Text>
-          <Text style={styles.panicText}>Si alguien está intentando tomar tu cuenta, cancela ahora.</Text>
-          <Button title="🚨 Cancelar y proteger mi cuenta" variant="danger" fullWidth onPress={panicCancel} loading={loading} style={{ marginTop: Spacing.md }} />
         </View>
         <Button title="Volver al inicio" variant="ghost" fullWidth onPress={() => router.replace('/(auth)/login')} style={{ marginTop: Spacing.md }} />
       </View>
@@ -127,7 +107,7 @@ export default function RecoverySocialScreen() {
         style={{ marginTop: Spacing.xl }}
       />
 
-      <Pressable style={styles.panicLink} onPress={() => setStep('panic')}>
+      <Pressable style={styles.panicLink} onPress={showPanicHelp}>
         <Text style={styles.panicLinkText}>
           ¿Alguien está intentando recuperar tu cuenta sin tu permiso?
         </Text>
@@ -155,8 +135,5 @@ const styles = StyleSheet.create({
   waitingTitle: { ...Typography.h1, color: Colors.text, textAlign: 'center' },
   waitingText: { ...Typography.body, color: Colors.textSoft, textAlign: 'center', lineHeight: 22 },
   waitingSteps: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md, width: '100%' },
-  stepItem: { ...Typography.body, color: Colors.text, lineHeight: 22 },
-  panicBox: { backgroundColor: '#FEF2F2', borderRadius: Radius.lg, padding: Spacing.lg, borderWidth: 1, borderColor: '#FECACA', width: '100%' },
-  panicTitle: { ...Typography.h3, color: Colors.danger },
-  panicText: { ...Typography.body, color: Colors.danger, marginTop: 4, opacity: 0.8 }
+  stepItem: { ...Typography.body, color: Colors.text, lineHeight: 22 }
 });

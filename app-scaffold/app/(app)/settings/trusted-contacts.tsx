@@ -32,6 +32,7 @@ export default function TrustedContactsScreen() {
     const { user } = useAuth();
     const [contacts, setContacts] = useState<TrustedContact[]>([]);
     const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+    const [activeRecovery, setActiveRecovery] = useState(false);
     const [searchEmail, setSearchEmail] = useState('');
     const [searchResult, setSearchResult] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -56,6 +57,15 @@ export default function TrustedContactsScreen() {
                 .eq('contact_id', user?.id)
                 .eq('status', 'pending');
             setPendingRequests((requests ?? []) as any);
+
+            // Recuperación en curso de MI cuenta (solo yo puedo cancelarla)
+            const { data: recovery } = await sb
+                .from('recovery_requests')
+                .select('id')
+                .eq('user_id', user?.id)
+                .in('status', ['pending', 'approved'])
+                .limit(1);
+            setActiveRecovery((recovery ?? []).length > 0);
         } catch (e: any) {
             Alert.alert('Error', e.message);
         } finally {
@@ -96,7 +106,8 @@ export default function TrustedContactsScreen() {
         setAdding(true);
         try {
             const sb = await getSupabase();
-            await sb.rpc('invite_trusted_contact', { p_contact_id: contactId });
+            const { error } = await sb.rpc('invite_trusted_contact', { p_contact_id: contactId });
+            if (error) throw error;
             Alert.alert('Invitación enviada', `${name} recibirá una solicitud para ser tu contacto de confianza.`);
             setSearchResult(null);
             setSearchEmail('');
@@ -139,6 +150,30 @@ export default function TrustedContactsScreen() {
         ]);
     };
 
+    const cancelRecovery = () => {
+        Alert.alert(
+            '¿Cancelar la recuperación?',
+            'Alguien pidió recuperar tu cuenta. Si no fuiste tú, cancélala. Durante 7 días no se podrá abrir otra.',
+            [
+                { text: 'Volver', style: 'cancel' },
+                {
+                    text: 'Sí, cancelar', style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const sb = await getSupabase();
+                            const { error } = await sb.rpc('panic_cancel_recovery');
+                            if (error) throw error;
+                            Alert.alert('Cancelada', 'La recuperación quedó bloqueada. Tu cuenta está segura.');
+                            load();
+                        } catch (e: any) {
+                            Alert.alert('Error', e.message);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const acceptedContacts = contacts.filter(c => c.status === 'accepted');
     const pendingContacts = contacts.filter(c => c.status === 'pending');
 
@@ -153,6 +188,23 @@ export default function TrustedContactsScreen() {
                 Estas personas pueden ayudarte a recuperar tu cuenta si pierdes acceso.
                 Necesitarás que al menos 3 aprueben la solicitud.
             </Text>
+
+            {/* Alguien está intentando recuperar mi cuenta */}
+            {activeRecovery && (
+                <View style={styles.recoveryAlert}>
+                    <Text style={styles.recoveryAlertTitle}>Hay una recuperación de tu cuenta en curso</Text>
+                    <Text style={styles.recoveryAlertText}>
+                        Si no la iniciaste tú, cancélala ahora.
+                    </Text>
+                    <Button
+                        title="Cancelar y proteger mi cuenta"
+                        variant="danger"
+                        fullWidth
+                        onPress={cancelRecovery}
+                        style={{ marginTop: Spacing.md }}
+                    />
+                </View>
+            )}
 
             {/* Solicitudes pendientes para mí */}
             {pendingRequests.length > 0 && (
@@ -275,7 +327,7 @@ export default function TrustedContactsScreen() {
                     • Si pierdes acceso a tu cuenta, puedes iniciar una recuperación social.{'\n'}
                     • Al menos 3 de tus contactos deben aprobar la solicitud.{'\n'}
                     • Hay 48 horas de espera para protegerte de intentos no autorizados.{'\n'}
-                    • Si alguien intenta recuperar tu cuenta sin tu permiso, puedes cancelarlo desde la pantalla de login.
+                    • Si alguien intenta recuperar tu cuenta sin tu permiso, verás un aviso aquí para cancelarlo.
                 </Text>
             </View>
         </ScrollView>
@@ -313,6 +365,9 @@ const styles = StyleSheet.create({
     rejectBtnText: { ...Typography.bodyBold, color: Colors.textSoft },
     input: { backgroundColor: Colors.surfaceAlt, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.lg, padding: Spacing.md, ...Typography.body, color: Colors.text },
     searchResult: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: Colors.surfaceAlt, borderRadius: Radius.lg, padding: Spacing.md, marginTop: Spacing.md },
+    recoveryAlert: { backgroundColor: '#FEF2F2', borderRadius: Radius.lg, padding: Spacing.lg, marginBottom: Spacing.md, borderWidth: 1, borderColor: '#FECACA' },
+    recoveryAlertTitle: { ...Typography.h3, color: Colors.danger },
+    recoveryAlertText: { ...Typography.body, color: Colors.danger, marginTop: 4, opacity: 0.8 },
     infoBox: { backgroundColor: Colors.primaryLight, borderRadius: Radius.lg, padding: Spacing.lg, borderWidth: 1, borderColor: Colors.primary + '44' },
     infoTitle: { ...Typography.h3, color: Colors.primaryDark, marginBottom: Spacing.sm },
     infoText: { ...Typography.body, color: Colors.primaryDark, lineHeight: 22 }

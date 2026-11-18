@@ -49,14 +49,14 @@ app-scaffold/          App Expo (≈12 500 líneas de TypeScript, 33 pantallas)
   src/store/           Estado global con Zustand (auth, tracking, grupos)
   src/hooks/           useGroupLive (Realtime), useBatteryStatus, useSOSAlert…
   src/utils/kalman.ts  Filtro de Kalman para GPS
-supabase/migrations/   Esquema SQL: 22 tablas con RLS y 37 funciones RPC
+supabase/migrations/   Esquema SQL: 22 tablas con RLS y 35 funciones RPC
 landing/               Landing page de descarga (HTML/CSS/JS, desplegada en Vercel)
 docs/                  Guía interna de releases
 ```
 
 **Flujo de una ubicación:** GPS → filtros de calidad → Kalman → RPC `update_location()` → Supabase Realtime → los pines se actualizan en el mapa de cada miembro del grupo.
 
-**Seguridad:** RLS en todas las tablas (un usuario solo ve las ubicaciones de su grupo), tokens en el llavero nativo, biometría opcional y HTTPS/WSS obligatorios.
+**Seguridad:** RLS en todas las tablas (un usuario solo ve las ubicaciones de su grupo), RPC cerradas a quien no tiene sesión salvo las de recuperación, tokens en el llavero nativo, biometría opcional y HTTPS/WSS obligatorios.
 
 ## Correr el proyecto
 
