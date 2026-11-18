@@ -12,7 +12,7 @@ import {
   View
 } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
-import MapView, { AnimatedRegion, Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { AnimatedRegion, Circle, LatLng, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useGroupLive } from '../../../src/hooks/useGroupLive';
 import { useAuth } from '../../../src/store/auth';
 import { useTracking } from '../../../src/store/tracking';
@@ -114,14 +114,21 @@ function MemberMarkerInner({
   );
 }
 
+/** Miembros visibles con ubicación conocida (estrecha el tipo de `location` a no-null). */
+function isVisibleWithLocation<T extends { location: unknown; is_invisible?: boolean | null }>(
+  m: T
+): m is T & { location: NonNullable<T['location']> } {
+  return !!m.location && !m.is_invisible;
+}
+
 export default function MapScreen() {
-  const { groupId } = useLocalSearchParams();
+  const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const currentUserId = useAuth(s => s.user?.id);
   const currentProfile = useAuth(s => s.profile);
   const filteredLocation = useTracking(s => s.filteredLocation);
   const { snapshot, loading, error, refresh } = useGroupLive(groupId ?? null);
-  const mapRef = useRef(null);
-  const [selectedMemberId, setSelectedMemberId] = useState(null);
+  const mapRef = useRef<MapView>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [following, setFollowing] = useState(true);
@@ -171,6 +178,7 @@ export default function MapScreen() {
           longitudeDelta: 0,
           duration: 1000,
           useNativeDriver: false,
+          toValue: 0, // requerido por el tipo; AnimatedRegion lo reemplaza por cada coordenada
         }).start();
       }
     });
@@ -191,7 +199,7 @@ export default function MapScreen() {
   const fitToMembers = useCallback(() => {
     if (!snapshot) return;
     const coords = (snapshot.members ?? [])
-      .filter(m => m.location && !m.is_invisible)
+      .filter(isVisibleWithLocation)
       .map(m => ({ latitude: m.location.latitude, longitude: m.location.longitude }));
     if (coords.length === 0) return;
     if (coords.length === 1) {
@@ -291,11 +299,9 @@ export default function MapScreen() {
         ))}
 
         {(snapshot?.members ?? [])
-          .filter(m => m.location && !m.is_invisible)
+          .filter(isVisibleWithLocation)
           .map(m => {
-            const isStale = m.location
-              ? Date.now() - new Date(m.location.updated_at).getTime() > Tracking.staleAfterMin * 60 * 1000
-              : true;
+            const isStale = Date.now() - new Date(m.location.updated_at).getTime() > Tracking.staleAfterMin * 60 * 1000;
             const isMe = m.user_id === currentUserId;
             const hasSOS = !!m.active_sos;
             const isSelected = m.user_id === selectedMemberId;
@@ -308,7 +314,9 @@ export default function MapScreen() {
               ? filteredLocation.heading
               : m.location.heading;
 
-            const coord = animatedCoords[m.user_id] ?? { latitude: displayLat, longitude: displayLng };
+            // AnimatedRegion funciona como coordenada de Marker.Animated, pero los tipos de
+            // react-native-maps no lo reflejan.
+            const coord = (animatedCoords[m.user_id] ?? { latitude: displayLat, longitude: displayLng }) as unknown as LatLng;
 
             return (
               <React.Fragment key={m.user_id}>

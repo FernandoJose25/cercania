@@ -80,7 +80,7 @@ export default function VerifyOTPScreen() {
         return (
           <Pressable key={i} onPress={() => inputRef.current?.focus()} style={[
             styles.digitBox,
-            char && styles.digitBoxFilled,
+            !!char && styles.digitBoxFilled,
             isCurrent && styles.digitBoxCurrent
           ]}>
             <Text style={styles.digitText}>{char || (isCurrent ? '|' : '')}</Text>

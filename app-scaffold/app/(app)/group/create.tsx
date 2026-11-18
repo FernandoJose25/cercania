@@ -24,7 +24,7 @@ export default function CreateGroupScreen() {
     const [emoji, setEmoji] = useState('👨‍👩‍👧‍👦');
     const [color, setColor] = useState('#F59E0B');
     const [loading, setLoading] = useState(false);
-    const [inviteCode, setInviteCode] = useState(null);
+    const [inviteCode, setInviteCode] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const { createGroup } = useGroups();
 
@@ -35,7 +35,7 @@ export default function CreateGroupScreen() {
             const result = await createGroup(name.trim(), emoji, color);
             setInviteCode(result.invite_code);
         } catch (e) {
-            Alert.alert('Error', e.message);
+            Alert.alert('Error', e instanceof Error ? e.message : String(e));
         } finally {
             setLoading(false);
         }

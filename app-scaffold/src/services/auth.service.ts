@@ -2,7 +2,7 @@
 import { getSupabase, rebuildSupabase } from '../lib/supabase';
 import { setStorageMode } from '../lib/secureStorage';
 
-export async function signUp({ email, password, displayName }) {
+export async function signUp({ email, password, displayName }: { email: string; password: string; displayName: string }) {
   const sb = await getSupabase();
   const { data, error } = await sb.auth.signUp({
     email: email.trim().toLowerCase(),
@@ -13,7 +13,7 @@ export async function signUp({ email, password, displayName }) {
   return data;
 }
 
-export async function verifySignupOtp(email, token) {
+export async function verifySignupOtp(email: string, token: string) {
   const sb = await getSupabase();
   const { data, error } = await sb.auth.verifyOtp({
     email: email.trim().toLowerCase(), token: token.trim(), type: 'signup'
@@ -22,13 +22,13 @@ export async function verifySignupOtp(email, token) {
   return data;
 }
 
-export async function resendSignupOtp(email) {
+export async function resendSignupOtp(email: string) {
   const sb = await getSupabase();
   const { error } = await sb.auth.resend({ type: 'signup', email: email.trim().toLowerCase() });
   if (error) throw error;
 }
 
-export async function signIn({ email, password, keepSession }) {
+export async function signIn({ email, password, keepSession }: { email: string; password: string; keepSession: boolean }) {
   await setStorageMode(keepSession);
   // Solo reconstruir si cambia el modo de storage
   const sb = await getSupabase();
@@ -39,13 +39,13 @@ export async function signIn({ email, password, keepSession }) {
   return data;
 }
 
-export async function requestPasswordReset(email) {
+export async function requestPasswordReset(email: string) {
   const sb = await getSupabase();
   const { error } = await sb.auth.resetPasswordForEmail(email.trim().toLowerCase());
   if (error) throw error;
 }
 
-export async function verifyRecoveryOtp(email, token) {
+export async function verifyRecoveryOtp(email: string, token: string) {
   const sb = await getSupabase();
   const { data, error } = await sb.auth.verifyOtp({
     email: email.trim().toLowerCase(), token: token.trim(), type: 'recovery'
@@ -54,7 +54,7 @@ export async function verifyRecoveryOtp(email, token) {
   return data;
 }
 
-export async function updatePassword(newPassword) {
+export async function updatePassword(newPassword: string) {
   const sb = await getSupabase();
   const { error } = await sb.auth.updateUser({ password: newPassword });
   if (error) throw error;

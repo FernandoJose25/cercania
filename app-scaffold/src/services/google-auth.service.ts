@@ -46,12 +46,13 @@ export async function signInWithGoogle() {
     if (error) throw error;
 
     // Sincronizar foto de perfil de Google automáticamente
-    const googleAvatar = userInfo.data?.user?.photo;
+    // google-signin v11: signIn() devuelve el User directamente (sin envoltorio `data`)
+    const googleAvatar = userInfo.user?.photo;
     if (googleAvatar && data.user) {
         await sb.from('profiles')
             .update({ avatar_url: googleAvatar })
             .eq('id', data.user.id)
-            .then(() => {}).catch(() => {});
+            .then(() => {}, () => {});
     }
 
     return data;

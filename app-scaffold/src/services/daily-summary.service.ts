@@ -26,10 +26,12 @@ export async function scheduleDailySummary(): Promise<void> {
       data: { type: 'daily_summary' },
       sound: 'default',
     },
+    // expo-notifications 0.28 (SDK 51): trigger diario = { hour, minute, repeats: true }.
+    // `SchedulableTriggerInputTypes` no existe en esta versión (llega en SDK 52).
     trigger: {
-      type: ExpoNotifications.SchedulableTriggerInputTypes.DAILY,
       hour: 21,
       minute: 0,
+      repeats: true,
     },
   });
 }

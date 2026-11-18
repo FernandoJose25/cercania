@@ -337,7 +337,7 @@ export default function HistoryScreen() {
                   </View>
                   <View>
                     <Text style={styles.timelineTitle}>{currentMember.name}</Text>
-                    <Text style={styles.timelineSub}>{totalPoints} puntos · {DATE_OPTIONS.find(d => d.value === selectedDayOffset)?.label}</Text>
+                    <Text style={styles.timelineSub}>{totalPoints} puntos · {DAY_OPTIONS.find(d => d.value === selectedDayOffset)?.label}</Text>
                   </View>
                 </View>
                 <View style={styles.timelineDivider} />
