@@ -85,7 +85,7 @@ v0.1.11 — 2026-11-18 — Seguridad
   Notas: cancelar una recuperación de cuenta pasa a Ajustes → Contactos de confianza (exige sesión); acompaña la migración 007_seguridad.sql
 
 v0.1.10 — 2026-06-19 — Marcadores premium + Heading GPS
-  APK: https://github.com/FernandoJose25/cercania/releases/download/v0.1.10/cercania-v0.1.10.apk
+  APK: no se publicó; sus cambios salieron en v0.1.11
   Notas: Anillo amber pulsante (Life360), triángulo de dirección GPS, avatares con foto/iniciales, dot de posición cruda
 
 v0.1.0 — 2026-06-11 — Primera versión pública
