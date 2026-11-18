@@ -80,6 +80,10 @@ PASO 9 — Verificar
 
 VERSIONES PUBLICADAS
 ============================================================
+v0.1.11 — 2026-11-18 — Seguridad
+  APK: https://github.com/FernandoJose25/cercania/releases/download/v0.1.11/cercania-v0.1.11.apk
+  Notas: cancelar una recuperación de cuenta pasa a Ajustes → Contactos de confianza (exige sesión); acompaña la migración 007_seguridad.sql
+
 v0.1.10 — 2026-06-19 — Marcadores premium + Heading GPS
   APK: https://github.com/FernandoJose25/cercania/releases/download/v0.1.10/cercania-v0.1.10.apk
   Notas: Anillo amber pulsante (Life360), triángulo de dirección GPS, avatares con foto/iniciales, dot de posición cruda
